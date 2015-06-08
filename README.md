@@ -1,1 +1,2 @@
-# Testat_Distsys
+# distsys
+Vorlesung Verteilte Systeme, DHBW Ravensburg Campus Friedrichshafen
