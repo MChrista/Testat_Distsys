@@ -1,0 +1,5 @@
+*.o
+*.pdf
+/pe/tinyweb/build/*
+/pe/tinyweb/libdebug/build/*
+/pe/tinyweb/libsockets/build/*
