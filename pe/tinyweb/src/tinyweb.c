@@ -358,7 +358,7 @@ main(int argc, char *argv[])
     server_running = true;
     while(server_running) {
         // pause();
-        // start accepting clients
+        // start accepting clients TODO: add error handling to accept_client
         accept_client(sd);
     } /* end while */
 
