@@ -228,49 +228,96 @@ install_signal_handlers(void)
     } /* end if */
 } /* end of install_signal_handlers */
 
+/**
+ * Creates a server socket.
+ * @param   the program options
+ * @return  the socket descriptor
+ */
 int 
-create_server_socket(prog_options_t *server) {
-    int sd, qlen, retcode;
-    qlen = 5;
-    const int on = 1; /* used to set socket option */
-    
-    //struct sockaddr_in server_2;
-    //server_2 = (struct sockaddr_in)&server->server_addr->ai_addr;
+create_server_socket(prog_options_t *server) 
+{
+    int sfd;            /* socket file descriptor */
+    int retcode;        /* return code from bind */
+    const int on = 1;   /* used to set socket option */
+    const int qlen = 5; /* socket descriptor */
+
     /*
-    * Create a socket.
-    */
-    struct addrinfo *result;
-    result = server->server_addr;
-    sd = socket(PF_INET, SOCK_STREAM, result->ai_protocol);
-    if (sd < 0) {
+     * Create a socket
+     */
+    sfd = socket(PF_INET, SOCK_STREAM, server->server_addr->ai_protocol);
+    if (sfd < 0) {
         perror("ERROR: server socket()");
         return -1;
     } /* end if */
 
     /*
-    * Set socket options.
-    */
-    setsockopt(sd, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on));
+     * Set socket options.
+     */
+    setsockopt(sfd, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on));
 
     /*
-    * Bind the socket to the provided port.
-    */
-    retcode = bind(sd, (struct sockaddr *)&result, sizeof(result));
+     * Bind the socket to the provided port.
+     */
+    retcode = bind(sfd, server->server_addr->ai_addr, server->server_addr->ai_addrlen);
     if (retcode < 0) {
         perror("ERROR: server bind()");
         return -1;
     } /* end if */
 
     /*
-    * Place the socket in passive mode.
-    */
-    retcode = listen (sd, qlen);
+     * Place the socket in passive mode.
+     */
+    retcode = listen (sfd, qlen);
     if (retcode < 0) {
         perror("ERROR: server listen()");
         return -1;
     } /* end if */
 
-    return sd;
+    return sfd;
+}
+
+/**
+ * Accept clients on the socket.
+ * @param   the socket descriptor
+ * @return  a new socket descriptor
+ */
+static int
+accept_client(int sd)
+{
+    int nsd; /* new socket descriptor */
+    struct sockaddr_in from_client; /* the input sockaddr */
+    socklen_t from_client_len = sizeof(from_client); /* the length of it */
+    pid_t pid; /* process id */
+    int retcode; /* return code */
+
+    /*
+     * accept clients on the socket
+     */
+    nsd = accept(sd, (struct sockaddr *) &from_client, &from_client_len);
+    if (nsd < 0) {
+        perror("ERROR: server accept()");
+        return -1;
+    }
+
+    pid = fork();
+    if (pid == 0) { /* child process */
+        retcode = close(sd);
+        if (retcode < 0) {
+            perror("ERROR: child close()");
+        }
+        // TODO: the childs code
+    } else if (pid > 0) { /* parent process */
+        retcode = close(nsd);
+        if (retcode < 0) {
+            perror("ERROR: parent close()");
+        }
+        // TODO: the parents code
+    } else { /* error while forking */
+        // use our own thread-safe implemention of printf
+        safe_printf("ERROR: fork()");
+    }
+
+    return nsd;
 }
 
 int
@@ -298,9 +345,10 @@ main(int argc, char *argv[])
     install_signal_handlers();
     init_logging_semaphore();
 
+    // create the socket
     sd = create_server_socket(&my_opt);
     if(sd < 0) {
-        // ERROR
+        perror("ERROR: creating socket()");
     }
 
     // TODO: start the server and handle clients...
@@ -309,11 +357,11 @@ main(int argc, char *argv[])
     printf("[%d] Starting server '%s'...\n", getpid(), my_opt.progname);
     server_running = true;
     while(server_running) {
-        pause();
-        // TODO passive_tcp auf dem Port
+        // pause();
+        // start accepting clients
+        accept_client(sd);
     } /* end while */
 
-    printf("[%d] Good Bye...\n", getpid());
+    printf("[%d] Good Bye...", getpid());
     exit(retcode);
 } /* end of main */
-
