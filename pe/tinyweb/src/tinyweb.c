@@ -41,6 +41,7 @@
 #include "safe_print.h"
 #include "sem_print.h"
 
+#include "passive_tcp.h"
 
 // Must be true for the server accepting clients,
 // otherwise, the server will terminate
@@ -128,6 +129,7 @@ get_options(int argc, char *argv[], prog_options_t *opt)
         };
 
         c = getopt_long(argc, argv, "f:p:d:v", long_options, &option_index);
+        // TODO: ausführlicher
         if (c == -1) break;
 
         switch(c) {
@@ -226,11 +228,56 @@ install_signal_handlers(void)
     } /* end if */
 } /* end of install_signal_handlers */
 
+int 
+create_server_socket(prog_options_t *server) {
+    int sd, qlen, retcode;
+    qlen = 5;
+    const int on = 1; /* used to set socket option */
+    
+    //struct sockaddr_in server_2;
+    //server_2 = (struct sockaddr_in)&server->server_addr->ai_addr;
+    /*
+    * Create a socket.
+    */
+    struct addrinfo *result;
+    result = server->server_addr;
+    sd = socket(PF_INET, SOCK_STREAM, result->ai_protocol);
+    if (sd < 0) {
+        perror("ERROR: server socket()");
+        return -1;
+    } /* end if */
+
+    /*
+    * Set socket options.
+    */
+    setsockopt(sd, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on));
+
+    /*
+    * Bind the socket to the provided port.
+    */
+    retcode = bind(sd, (struct sockaddr *)&result, sizeof(result));
+    if (retcode < 0) {
+        perror("ERROR: server bind()");
+        return -1;
+    } /* end if */
+
+    /*
+    * Place the socket in passive mode.
+    */
+    retcode = listen (sd, qlen);
+    if (retcode < 0) {
+        perror("ERROR: server listen()");
+        return -1;
+    } /* end if */
+
+    return sd;
+}
 
 int
 main(int argc, char *argv[])
 {
     int retcode = EXIT_SUCCESS;
+    int sd;
     prog_options_t my_opt;
 
     // read program options
@@ -251,6 +298,11 @@ main(int argc, char *argv[])
     install_signal_handlers();
     init_logging_semaphore();
 
+    sd = create_server_socket(&my_opt);
+    if(sd < 0) {
+        // ERROR
+    }
+
     // TODO: start the server and handle clients...
     // here, as an example, show how to interact with the
     // condition set by the signal handler above
@@ -258,6 +310,7 @@ main(int argc, char *argv[])
     server_running = true;
     while(server_running) {
         pause();
+        // TODO passive_tcp auf dem Port
     } /* end while */
 
     printf("[%d] Good Bye...\n", getpid());
