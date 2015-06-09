@@ -74,10 +74,12 @@ sig_handler(int sig)
 static void
 print_usage(const char *progname)
 {
-  fprintf(stderr, "Usage: %s options\n", progname);
-  // TODO: Print the program options
+  fprintf(stderr, "Usage: %s options\n%s%s%s%s", progname,
+    "\t-d\tthe directory of web files\n",
+    "\t-f\tthe logfile (if '-' or option not set; logging will be redirected to stdout\n",
+    "\t-p\tthe port logging is redirected to stdout.for the server\n",
+    "TIT12 Gruppe 7: Michael Christa, Florian Hink\n");
 } /* end of print_usage */
-
 
 //
 // TODO: Include your function header here
@@ -128,7 +130,7 @@ get_options(int argc, char *argv[], prog_options_t *opt)
             { NULL,      0, 0, 0 }
         };
 
-        c = getopt_long(argc, argv, "f:p:d:v", long_options, &option_index);
+        c = getopt_long(argc, argv, "f:p:d:h:v", long_options, &option_index);
         // TODO: ausführlicher
         if (c == -1) break;
 
@@ -159,6 +161,9 @@ get_options(int argc, char *argv[], prog_options_t *opt)
                     err_print("cannot allocate memory");
                     return EXIT_FAILURE;
                 } /* end if */
+                break;
+            case 'h':
+                // TODO: print out help
                 break;
             case 'v':
                 opt->verbose = 1;
@@ -277,6 +282,25 @@ create_server_socket(prog_options_t *server)
 }
 
 /**
+ * Write connection details to log.
+ */
+static int
+write_log()
+{
+    return 0;
+}
+
+/**
+ * Handle clients.
+ */
+static int
+handle_client(int sd, const struct sockaddr_in client)
+{
+    write_log();
+    return 0;
+}
+
+/**
  * Accept clients on the socket.
  * @param   the socket descriptor
  * @return  a new socket descriptor
@@ -285,15 +309,15 @@ static int
 accept_client(int sd)
 {
     int nsd; /* new socket descriptor */
-    struct sockaddr_in from_client; /* the input sockaddr */
-    socklen_t from_client_len = sizeof(from_client); /* the length of it */
+    struct sockaddr_in client; /* the input sockaddr */
+    socklen_t client_len = sizeof(client); /* the length of it */
     pid_t pid; /* process id */
     int retcode; /* return code */
 
     /*
      * accept clients on the socket
      */
-    nsd = accept(sd, (struct sockaddr *) &from_client, &from_client_len);
+    nsd = accept(sd, (struct sockaddr *) &client, &client_len);
     if (nsd < 0) {
         perror("ERROR: server accept()");
         return -1;
@@ -305,7 +329,11 @@ accept_client(int sd)
         if (retcode < 0) {
             perror("ERROR: child close()");
         }
-        // TODO: the childs code
+        retcode = handle_client(nsd, client);
+        if (retcode < 0) {
+            perror("ERROR: child handle_client()");
+        }
+        // TODO: the childs code / use only safe print?
     } else if (pid > 0) { /* parent process */
         retcode = close(nsd);
         if (retcode < 0) {
@@ -344,6 +372,7 @@ main(int argc, char *argv[])
     check_root_dir(&my_opt);
     install_signal_handlers();
     init_logging_semaphore();
+    // TODO: check existence of log_file
 
     // create the socket
     sd = create_server_socket(&my_opt);
