@@ -24,3 +24,4 @@ int parse_http_headers(const char *header)
 
 	return retcode;
 }
+// https://github.com/danmactough/node-parse-http-header/blob/master/parse-http-header.js
