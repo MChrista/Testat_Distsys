@@ -41,7 +41,7 @@
 #include "safe_print.h"
 #include "sem_print.h"
 
-#include "passive_tcp.h"
+#include "http_parser.h"
 
 // Must be true for the server accepting clients,
 // otherwise, the server will terminate
@@ -55,11 +55,19 @@ static volatile sig_atomic_t server_running = false;
 static void
 sig_handler(int sig)
 {
+    int status;
     switch(sig) {
         case SIGINT:
             // use our own thread-safe implemention of printf
             safe_printf("\n[%d] Server terminated due to keyboard interrupt\n", getpid());
             server_running = false;
+            break;
+        case SIGCHLD:
+            while(waitpid(-1, &status, WNOHANG)>0){
+                safe_printf("terminated child\n");
+                safe_printf("%d\n", status);
+                // TODO if status != 0 return 503?
+            }
             break;
         // TODO: Complete signal handler
         default:
@@ -128,7 +136,7 @@ get_options(int argc, char *argv[], prog_options_t *opt)
             { "verbose", no_argument,       0, 0 },
             { "debug",   no_argument,       0, 0 },
             { NULL,      0, 0, 0 }
-        };
+        };    
 
         c = getopt_long(argc, argv, "f:p:d:h:v", long_options, &option_index);
         // TODO: ausführlicher
@@ -292,10 +300,26 @@ write_log()
 
 /**
  * Handle clients.
+ * @param the socket descriptor to read on
  */
 static int
-handle_client(int sd, const struct sockaddr_in client)
+handle_client(int sd)
 {
+    // maybe define a HTTP_MAX_HEADER_SIZE to prevent DOS attacks
+    // run till /n/r/n/r
+    int BUFSIZE = 1000;     /* buffer size */
+    char buf[BUFSIZE];      /* buffer */
+    int cc;                 /* character count */
+
+    while ((cc = read(sd, buf, BUFSIZE)) > 0) {
+        if (cc < 0) { /* error occured while reading */
+            perror("ERROR: read()");
+        } else if (cc == 0) { /* zero indicates end of file */
+            //safe_printf("%s\n", "connection closed!");
+        } /* end if */
+    }
+    safe_printf(buf);
+    parse_http_headers(buf);
     write_log();
     return 0;
 }
@@ -308,11 +332,12 @@ handle_client(int sd, const struct sockaddr_in client)
 static int
 accept_client(int sd)
 {
-    int nsd; /* new socket descriptor */
-    struct sockaddr_in client; /* the input sockaddr */
+    signal(SIGCHLD, sig_handler);
+    int nsd;                    /* new socket descriptor */
+    struct sockaddr_in client;  /* the input sockaddr */
     socklen_t client_len = sizeof(client); /* the length of it */
-    pid_t pid; /* process id */
-    int retcode; /* return code */
+    pid_t pid;                  /* process id */
+    int retcode;                /* return code */
 
     /*
      * accept clients on the socket
@@ -328,21 +353,21 @@ accept_client(int sd)
         retcode = close(sd);
         if (retcode < 0) {
             perror("ERROR: child close()");
-        }
-        retcode = handle_client(nsd, client);
+        } /* end if */
+        retcode = handle_client(nsd);
         if (retcode < 0) {
             perror("ERROR: child handle_client()");
-        }
-        // TODO: the childs code / use only safe print?
+        } /* end if */
+        exit(EXIT_SUCCESS);
     } else if (pid > 0) { /* parent process */
         retcode = close(nsd);
         if (retcode < 0) {
             perror("ERROR: parent close()");
-        }
-        // TODO: the parents code
+        } /* end if */
     } else { /* error while forking */
         // use our own thread-safe implemention of printf
         safe_printf("ERROR: fork()");
+        exit(EXIT_FAILURE);
     }
 
     return nsd;
@@ -378,7 +403,7 @@ main(int argc, char *argv[])
     sd = create_server_socket(&my_opt);
     if(sd < 0) {
         perror("ERROR: creating socket()");
-    }
+    } /* end if */
 
     // TODO: start the server and handle clients...
     // here, as an example, show how to interact with the
