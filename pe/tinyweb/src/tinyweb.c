@@ -295,6 +295,7 @@ create_server_socket(prog_options_t *server)
 static int
 write_log()
 {
+    // TODO: stdout or log file?!
     return 0;
 } /* end of write_log */
 
@@ -312,6 +313,7 @@ handle_client(int sd)
     int cc;             /* character count */
     parsed_http_header parsed_header;   /* parsed header */
 
+    // read from client
     while ((cc = read(sd, buf, BUFSIZE)) > 0) {
         if (cc < 0) { /* error occured while reading */
             perror("ERROR: read()");
@@ -320,12 +322,24 @@ handle_client(int sd)
         } /* end if */
     }
 
+    // parse the header
     parsed_header = parse_http_header(buf);
-    safe_printf("%s\n", parsed_header.method);
-    //header = parse_http_header(buf);
-    //safe_printf(buf);
+
+    // determine the method type
+    if(strncmp(parsed_header.method, "GET", sizeof(parsed_header.method)) == 0) { /* GET method */
+        //TODO: implement GET method
+        //safe_printf("%s\n", "GET method called");
+    } else if (strncmp(parsed_header.method, "HEAD", sizeof(parsed_header.method)) == 0) { /* HEAD method */
+        //TODO: implement HEAD method
+        //safe_printf("%s\n", "HEAD method called");
+    } else { /* unsupported method */
+        //TODO: implement unsupported method
+        //safe_printf("%s\n", "unsupported method called");
+    } /* end if */
+
+    // write request to log file
     write_log();
-    return BUFSIZE;
+    return 0;
 } /* end of handle_client */
 
 /**
