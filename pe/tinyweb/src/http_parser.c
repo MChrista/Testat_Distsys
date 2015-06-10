@@ -8,20 +8,30 @@
  *===================================================================*/
 
 #include <stdio.h>
+#include <string.h>
 
-int parse_http_headers(const char *header)
+#include "http_parser.h"
+
+/**
+ * parse the http header
+ * @param 	the header as char array
+ * @return 	the parsed header
+ */
+parsed_http_header
+parse_http_header(char *header)
 {
-	int retcode = 5; 	/* return code */
-	//int c;			/* single character */
+	parsed_http_header parsed_header;
+	
+	char delimiter[] = " ";
+	char *pointer;
 
-	/*
-	while((c = fgetc(header)) != EOF) {
-        if (c == 'G') {
-            printf("%s\n", "found G!");
-        }
-    }
-    */
+	pointer = strtok(header, delimiter);
 
-	return retcode;
-}
-// https://github.com/danmactough/node-parse-http-header/blob/master/parse-http-header.js
+	memcpy(parsed_header.method, pointer, sizeof(parsed_header.method));
+	pointer = strtok(NULL, delimiter);
+	memcpy(parsed_header.file, pointer, sizeof(parsed_header.file));
+	pointer = strtok(NULL, delimiter);
+	memcpy(parsed_header.protocol, pointer, sizeof(parsed_header.protocol));
+
+	return parsed_header;
+} /* end of parse_http_header */

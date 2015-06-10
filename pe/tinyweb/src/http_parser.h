@@ -10,6 +10,13 @@
 #ifndef _HTTP_PARSER_H
 #define _HTTP_PARSER_H
 
-extern int parse_http_headers(const char *header);
+typedef struct
+{
+	char method[4];
+	char file[50];
+	char protocol[8];
+} parsed_http_header;
+
+extern parsed_http_header parse_http_header(char *header);
 
 #endif

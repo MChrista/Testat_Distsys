@@ -64,8 +64,8 @@ sig_handler(int sig)
             break;
         case SIGCHLD:
             while(waitpid(-1, &status, WNOHANG)>0){
-                safe_printf("terminated child\n");
-                safe_printf("%d\n", status);
+                //safe_printf("terminated child\n");
+                //safe_printf("%d\n", status);
                 // TODO if status != 0 return 503?
             }
             break;
@@ -287,7 +287,7 @@ create_server_socket(prog_options_t *server)
     } /* end if */
 
     return sfd;
-}
+} /* end of creater_server_socket */
 
 /**
  * Write connection details to log.
@@ -296,7 +296,7 @@ static int
 write_log()
 {
     return 0;
-}
+} /* end of write_log */
 
 /**
  * Handle clients.
@@ -307,9 +307,10 @@ handle_client(int sd)
 {
     // maybe define a HTTP_MAX_HEADER_SIZE to prevent DOS attacks
     // run till /n/r/n/r
-    int BUFSIZE = 1000;     /* buffer size */
-    char buf[BUFSIZE];      /* buffer */
-    int cc;                 /* character count */
+    int BUFSIZE = 1000; /* buffer size */
+    char buf[BUFSIZE];  /* buffer */
+    int cc;             /* character count */
+    parsed_http_header parsed_header;   /* parsed header */
 
     while ((cc = read(sd, buf, BUFSIZE)) > 0) {
         if (cc < 0) { /* error occured while reading */
@@ -318,11 +319,14 @@ handle_client(int sd)
             //safe_printf("%s\n", "connection closed!");
         } /* end if */
     }
-    safe_printf(buf);
-    parse_http_headers(buf);
+
+    parsed_header = parse_http_header(buf);
+    safe_printf("%s\n", parsed_header.method);
+    //header = parse_http_header(buf);
+    //safe_printf(buf);
     write_log();
-    return 0;
-}
+    return BUFSIZE;
+} /* end of handle_client */
 
 /**
  * Accept clients on the socket.
@@ -371,7 +375,7 @@ accept_client(int sd)
     }
 
     return nsd;
-}
+} /* end of accept_client */
 
 int
 main(int argc, char *argv[])
