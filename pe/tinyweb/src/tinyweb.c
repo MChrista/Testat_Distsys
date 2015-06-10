@@ -300,8 +300,39 @@ write_log()
 } /* end of write_log */
 
 /**
+ * the request method GET
+ * @param  the socket descriptor
+ * @return >0 in case of error
+ */
+static int
+get_method(int sd)
+{
+    // TODO: fix this function
+    int retcode;
+    retcode = write(sd, "I got your message", 18);
+    if(retcode < 0) {
+        perror("ERROR: write()");
+        return -1;
+    }
+    return retcode;
+} /* end of get_method */
+
+/*
+ * the request method HEAD
+ * @param the socket descriptor
+ * @return >0 in case of error
+ */
+static int
+head_method(int sd)
+{
+    // TODO: implement this method
+    return 0;
+} /* end of head_method */
+
+/**
  * Handle clients.
- * @param the socket descriptor to read on
+ * @param   the socket descriptor to read on
+ * @return  >0 in case of error
  */
 static int
 handle_client(int sd)
@@ -327,11 +358,11 @@ handle_client(int sd)
 
     // determine the method type
     if(strncmp(parsed_header.method, "GET", sizeof(parsed_header.method)) == 0) { /* GET method */
-        //TODO: implement GET method
         //safe_printf("%s\n", "GET method called");
+        get_method(sd);
     } else if (strncmp(parsed_header.method, "HEAD", sizeof(parsed_header.method)) == 0) { /* HEAD method */
-        //TODO: implement HEAD method
         //safe_printf("%s\n", "HEAD method called");
+        head_method(sd);
     } else { /* unsupported method */
         //TODO: implement unsupported method
         //safe_printf("%s\n", "unsupported method called");
