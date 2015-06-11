@@ -6,10 +6,6 @@
  * Author:  Ralf Reutemann
  *
  *===================================================================*/
-//
-// TODO: Include your module header here
-//
-
 
 #include <stdio.h>
 #include <time.h>
@@ -43,16 +39,13 @@
 
 #include "http_parser.h"
 #include "content.h"
+#include "http.h"
 
 // Must be true for the server accepting clients,
 // otherwise, the server will terminate
 static volatile sig_atomic_t server_running = false;
 
 #define IS_ROOT_DIR(mode)   (S_ISDIR(mode) && ((S_IROTH || S_IXOTH) & (mode)))
-
-//
-// TODO: Include your function header here
-//
 
 static void
 sig_handler(int sig) {
@@ -76,11 +69,6 @@ sig_handler(int sig) {
     } /* end switch */
 } /* end of sig_handler */
 
-
-//
-// TODO: Include your function header here
-//
-
 static void
 print_usage(const char *progname) {
     fprintf(stderr, "Usage: %s options\n%s%s%s%s", progname,
@@ -89,10 +77,6 @@ print_usage(const char *progname) {
             "\t-p\tthe port logging is redirected to stdout.for the server\n",
             "TIT12 Gruppe 7: Michael Christa, Florian Hink\n");
 } /* end of print_usage */
-
-//
-// TODO: Include your function header here
-//
 
 static int
 get_options(int argc, char *argv[], prog_options_t *opt) {
@@ -294,16 +278,71 @@ write_log() {
 
 /**
  * creates the http response header
+ * @param   the desired http status
+ * @param   the file status
+ * @param   the used protocol
+ * @return  >0 in case of error
+ */
+static http_header_t
+create_response_header(struct http_status_entry status, struct stat filestatus, char *protocol) {
+    http_header_t result; /* the header to return */
+    
+    // status
+    // TODO: fix this to something nicer
+    char statuscode[4];
+    sprintf(statuscode, "%d", status.code);
+    char statusString[50];
+    char stringProtocol[9];
+    bzero(stringProtocol, sizeof(stringProtocol));
+    memcpy(stringProtocol, protocol, 8);
+    bzero(statusString, sizeof(statusString));
+    strcpy(statusString, stringProtocol);
+    strcat(statusString, "\x20");
+    strcat(statusString, statuscode);
+    strcat(statusString, "\x20");
+    strcat(statusString, status.text);
+    strcat(statusString, "\n");
+    result.status = statusString;
+
+    //safe_printf(statusString);
+
+    // date
+    // TODO: get the date
+    // server
+    result.server = "TinyWeb (Build Jun 11 2015)\n";
+    // last-modified
+    //result.last_modified = filestatus.st_mtime;
+    // content-length
+    // content-type
+    // TODO: get the mime-type of the requested file
+    // connection
+    result.connection = "close\n";
+    // accept-ranges
+    // content-location
+    // TODO: if(statuscode = 301) -> give location
+
+    return result;
+} /* end of create_response_header */
+
+/**
+ * creates the reply to client
+ * @param   the socket descriptor
+ * @param   the HTTP Method as char[]
  * @param   the requested file
  * @param   the program options
  * @return  >0 in case of error
  */
 static int
-create_response_header(char *filename, prog_options_t *server) {
+return_http_file(int sd, char *type, char *filename, char *protocol, prog_options_t *server) {
+    // TODO: nur den parsed header als Parameter als alle 3 Elemente daraus
     char *internalFilename; /* internal filename for check */
-    char *filepath = server->root_dir; /* the resulting file path */
+    char *filepath = server->root_dir;      /* the resulting file path */
     int retcode;            /* the return code */
-    struct stat fileinfo;   /* file metadata */
+    struct stat filestatus; /* file metadata */
+    struct http_status_entry http_status;   /* the http status */
+
+    // default the status to 500
+    http_status = http_status_list[8];
 
     // malloc to avoid really long filenames
     internalFilename = (char *) malloc(strlen(filename) + 1);
@@ -317,67 +356,45 @@ create_response_header(char *filename, prog_options_t *server) {
     // path to folder + filename
     strcat(filepath, internalFilename);
 
-    retcode = stat(filepath, &fileinfo);
+    retcode = stat(filepath, &filestatus);
     if(retcode < 0) {
+        // TODO: handle 'No such file or directory' with 404
         perror("ERROR: stat()");
         return -1;
     }
 
-    if(!(S_ISREG(fileinfo.st_mode))) {
-        /* requested file doesn't exist */
-        // TODO: return http status 404
+    // TODO: merge the if's below into one huge
+    // check the requested file
+    if(!(S_ISREG(filestatus.st_mode))) {
+        /* requested file doesn't exist -> 404 */
+        http_status = http_status_list[6];
+        create_response_header(http_status, filestatus, protocol);
         return -1;
-    } else if ((fileinfo.st_mode & S_IFMT) == S_IROTH) {
-        /* requested file is not for public */
-        // TODO: return http status 403
+    } else if ((filestatus.st_mode & S_IFMT) == S_IROTH) {
+        /* requested file is not for public -> 403 */
+        http_status = http_status_list[5];
+        create_response_header(http_status, filestatus, protocol);
         return -1;
-    } else if(S_ISDIR(fileinfo.st_mode) && (((fileinfo.st_mode & S_IFMT) == S_IXOTH))) {
-        /* requested 'file' is a directory */
+    } else if(S_ISDIR(filestatus.st_mode) && (((filestatus.st_mode & S_IFMT) == S_IXOTH))) {
+        /* requested 'file' is a directory -> 301 */
+        http_status = http_status_list[2];
+        create_response_header(http_status, filestatus, protocol);
         return -1;
     } /* end if */
-
-    /*
-    char *header = 
-        "HTTP/1.1 200 OK\n"
-        "Date: Thu, 19 Feb 2009 12:27:04 GMT\n"
-        "Server: Apache/2.2.3\n"
-        "Last-Modified: Wed, 18 Jun 2003 16:05:58 GMT\n"
-        "Content-Length: 15\n"
-        "Content-Type: text/html\n"
-        "Connection: close\n"
-        "Accept-Ranges: bytes\n"
-        "Content-Location: /index.html\n"
-     */
-
-    return retcode;
-} /* end of create_response_header */
-
-/**
- * creates the reply to client
- * @param   the socket descriptor
- * @param   the HTTP Method as char[]
- * @param   the requested file
- * @param   the program options
- * @return  >0 in case of error
- */
-static int
-return_http_file(int sd, char *type, char *filename, prog_options_t *server) {
-    // TODO: fix this function
-    int retcode;
 
     // determine the method type
     if (strncmp(type, "GET", sizeof("GET")) == 0) { 
         /* GET method */
-        //safe_printf("%s\n", "GET method called");
-        create_response_header(filename, server);
+        http_status = http_status_list[0];
+        create_response_header(http_status, filestatus, protocol);
     } else if (strncmp(type, "HEAD", sizeof("HEAD")) == 0) { 
         /* HEAD method */
-        //safe_printf("%s\n", "HEAD method called");
-        create_response_header(filename, server);
+        http_status = http_status_list[0];
+        create_response_header(http_status, filestatus, protocol);
     } else { 
-        /* unsupported method */
-        //safe_printf("%s\n", "unsupported method called");
-        create_response_header(filename, server);
+        /* unsupported method -> 501 */
+        http_status = http_status_list[9];
+        create_response_header(http_status, filestatus, protocol);
     } /* end if */
 
     char *reply = "Hello World!\n";
@@ -404,7 +421,7 @@ handle_client(int sd, prog_options_t *server) {
     int BUFSIZE = 1000; /* buffer size */
     char buf[BUFSIZE]; /* buffer */
     int cc; /* character count */
-    parsed_http_header parsed_header; /* parsed header */
+    parsed_http_header_t parsed_header; /* parsed header */
 
     // read from client
     while ((cc = read(sd, buf, BUFSIZE)) > 0) {
@@ -412,9 +429,9 @@ handle_client(int sd, prog_options_t *server) {
         // parse the header
         parsed_header = parse_http_header(buf);
 
-        //safe_printf(parsed_header.method);
+        //safe_printf("%s\n", parsed_header.protocol);
 
-        return_http_file(sd, parsed_header.method, parsed_header.filename, server);
+        return_http_file(sd, parsed_header.method, parsed_header.filename, parsed_header.protocol, server);
     }
     if (cc < 0) { /* error occured while reading */
         perror("ERROR: read()");

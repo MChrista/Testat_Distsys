@@ -17,10 +17,10 @@
  * @param 	the header as char array
  * @return 	the parsed header
  */
-parsed_http_header
+parsed_http_header_t
 parse_http_header(char *header)
 {
-	parsed_http_header parsed_header;
+	parsed_http_header_t parsed_header;
 	
 	char delimiter[] = " ";
 	char *pointer;

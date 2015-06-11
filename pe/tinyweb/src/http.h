@@ -46,6 +46,19 @@ typedef struct http_status_entry {
 } http_status_entry_t;
 
 
+typedef struct http_header {
+    char    *status;
+    char    *date;
+    char    *server;
+    char    *last_modified;
+    char    *content_length;
+    char    *content_type;
+    char    *connection;
+    char    *accept_ranges;
+    char    *content_location;
+} http_header_t;
+
+
 extern http_method_entry_t http_method_list[];
 extern http_status_entry_t http_status_list[];
 
