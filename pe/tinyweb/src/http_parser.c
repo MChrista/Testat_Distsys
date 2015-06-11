@@ -30,7 +30,7 @@ parse_http_header(char *header)
 	memcpy(parsed_header.method, pointer, sizeof(parsed_header.method));
 	// requested file
 	pointer = strtok(NULL, delimiter);
-	memcpy(parsed_header.file, pointer, sizeof(parsed_header.file));
+	memcpy(parsed_header.filename, pointer, sizeof(parsed_header.filename));
 	// requested protocol
 	pointer = strtok(NULL, delimiter);
 	memcpy(parsed_header.protocol, pointer, sizeof(parsed_header.protocol));

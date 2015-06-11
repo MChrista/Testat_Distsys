@@ -300,6 +300,7 @@ write_log() {
 static int
 create_response_header(const char *filename) {
     // TODO implement this!
+    //safe_printf(filename);
     /*
     char *header = 
         "HTTP/1.1 200 OK\n"
@@ -319,23 +320,27 @@ create_response_header(const char *filename) {
 /**
  * creates the reply to client
  * @param   the socket descriptor
- * @param   the HTTP Method (1=GET, 0=HEAD)
+ * @param   the HTTP Method as char[]
+ * @param   the requested file
  * @return  >0 in case of error
  */
 static int
-return_method(int sd, int type) {
+return_http_file(int sd, char *type, char *filename) {
     // TODO: fix this function
     int retcode;
     create_response_header(NULL);
 
-    switch (type) {
-        case 1: /* GET */
-            break;
-        case 0: /* HEAD */
-            break;
-        default: /* unsupported */
-            break;
-    }
+    // determine the method type
+    if (strncmp(type, "GET", sizeof("GET")) == 0) { /* GET method */
+        safe_printf("%s\n", "GET method called");
+        create_response_header(filename);
+    } else if (strncmp(type, "HEAD", sizeof("HEAD")) == 0) { /* HEAD method */
+        safe_printf("%s\n", "HEAD method called");
+        create_response_header(filename);
+    } else { /* unsupported method */
+        safe_printf("%s\n", "unsupported method called");
+        create_response_header(filename);
+    } /* end if */
 
     char *reply = "Hello World!";
 
@@ -346,7 +351,7 @@ return_method(int sd, int type) {
     }
     safe_printf("run through\n");
     return retcode;
-} /* end of return_method */
+} /* end of return_http_file */
 
 /**
  * Handle clients.
@@ -368,17 +373,9 @@ handle_client(int sd) {
         // parse the header
         parsed_header = parse_http_header(buf);
 
-        // determine the method type
-        if (strncmp(parsed_header.method, "GET", sizeof (parsed_header.method)) == 0) { /* GET method */
-            //safe_printf("%s\n", "GET method called");
-            return_method(sd, 1);
-        } else if (strncmp(parsed_header.method, "HEAD", sizeof (parsed_header.method)) == 0) { /* HEAD method */
-            //safe_printf("%s\n", "HEAD method called");
-            return_method(sd, 0);
-        } else { /* unsupported method */
-            safe_printf("%s\n", "unsupported method called");
-            return_method(sd, -1);
-        } /* end if */
+        safe_printf(parsed_header.method);
+
+        return_http_file(sd, parsed_header.method, parsed_header.filename);
     }
     if (cc < 0) { /* error occured while reading */
         perror("ERROR: read()");

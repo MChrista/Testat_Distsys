@@ -13,7 +13,7 @@
 typedef struct
 {
 	char method[4];
-	char file[50];
+	char filename[50];
 	char protocol[8];
 } parsed_http_header;
 
