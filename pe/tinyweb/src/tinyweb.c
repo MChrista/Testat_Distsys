@@ -295,12 +295,44 @@ write_log() {
 /**
  * creates the http response header
  * @param   the requested file
+ * @param   the program options
  * @return  >0 in case of error
  */
 static int
-create_response_header(const char *filename) {
-    // TODO implement this!
-    //safe_printf(filename);
+create_response_header(char *filename, prog_options_t *server) {
+    char *internalFilename; /* internal filename for check */
+    char *filepath = server->root_dir; /* the resulting file path */
+    int retcode;            /* the return code */
+    struct stat fileinfo;   /* file metadata */
+
+    // malloc to avoid really long filenames
+    internalFilename = (char *) malloc(strlen(filename) + 1);
+    if (internalFilename != NULL) {
+        strcpy(internalFilename, filename);
+    } else {
+        err_print("cannot allocate memory");
+        return EXIT_FAILURE;
+    } /* end if */
+
+    // path to folder + filename
+    strcat(filepath, internalFilename);
+
+    retcode = stat(filepath, &fileinfo);
+    if(retcode < 0) {
+        perror("ERROR: stat()");
+        return -1;
+    }
+
+    if(!(S_ISREG(fileinfo.st_mode))) {
+        /* requested file doesn't exist */
+        // TODO: return http status 404
+        return -1;
+    } else if (!(S_ISROTH(fileinfo.st_mode))) {
+        /* requested file is not for public */
+        // TODO: return http status 403
+        return -1;
+    } /* end if */
+
     /*
     char *header = 
         "HTTP/1.1 200 OK\n"
@@ -314,7 +346,7 @@ create_response_header(const char *filename) {
         "Content-Location: /index.html\n"
      */
 
-    return -1;
+    return retcode;
 } /* end of create_response_header */
 
 /**
@@ -322,44 +354,48 @@ create_response_header(const char *filename) {
  * @param   the socket descriptor
  * @param   the HTTP Method as char[]
  * @param   the requested file
+ * @param   the program options
  * @return  >0 in case of error
  */
 static int
-return_http_file(int sd, char *type, char *filename) {
+return_http_file(int sd, char *type, char *filename, prog_options_t *server) {
     // TODO: fix this function
     int retcode;
-    create_response_header(NULL);
 
     // determine the method type
-    if (strncmp(type, "GET", sizeof("GET")) == 0) { /* GET method */
-        safe_printf("%s\n", "GET method called");
-        create_response_header(filename);
-    } else if (strncmp(type, "HEAD", sizeof("HEAD")) == 0) { /* HEAD method */
-        safe_printf("%s\n", "HEAD method called");
-        create_response_header(filename);
-    } else { /* unsupported method */
-        safe_printf("%s\n", "unsupported method called");
-        create_response_header(filename);
+    if (strncmp(type, "GET", sizeof("GET")) == 0) { 
+        /* GET method */
+        //safe_printf("%s\n", "GET method called");
+        create_response_header(filename, server);
+    } else if (strncmp(type, "HEAD", sizeof("HEAD")) == 0) { 
+        /* HEAD method */
+        //safe_printf("%s\n", "HEAD method called");
+        create_response_header(filename, server);
+    } else { 
+        /* unsupported method */
+        //safe_printf("%s\n", "unsupported method called");
+        create_response_header(filename, server);
     } /* end if */
 
-    char *reply = "Hello World!";
+    char *reply = "Hello World!\n";
 
     retcode = write(sd, reply, strlen(reply) - 1);
     if (retcode < 0) {
         perror("ERROR: write()");
         return -1;
     }
-    safe_printf("run through\n");
+    //safe_printf("run through\n");
     return retcode;
 } /* end of return_http_file */
 
 /**
  * Handle clients.
  * @param   the socket descriptor to read on
+ * @param   the program options
  * @return  >0 in case of error
  */
 static int
-handle_client(int sd) {
+handle_client(int sd, prog_options_t *server) {
     // maybe define a HTTP_MAX_HEADER_SIZE to prevent DOS attacks
     // run till /n/r/n/r
     int BUFSIZE = 1000; /* buffer size */
@@ -373,9 +409,9 @@ handle_client(int sd) {
         // parse the header
         parsed_header = parse_http_header(buf);
 
-        safe_printf(parsed_header.method);
+        //safe_printf(parsed_header.method);
 
-        return_http_file(sd, parsed_header.method, parsed_header.filename);
+        return_http_file(sd, parsed_header.method, parsed_header.filename, server);
     }
     if (cc < 0) { /* error occured while reading */
         perror("ERROR: read()");
@@ -394,10 +430,11 @@ handle_client(int sd) {
 /**
  * Accept clients on the socket.
  * @param   the socket descriptor
+ * @param   the program options
  * @return  a new socket descriptor
  */
 static int
-accept_client(int sd) {
+accept_client(int sd, prog_options_t *server) {
     signal(SIGCHLD, sig_handler);
     int nsd; /* new socket descriptor */
     struct sockaddr_in client; /* the input sockaddr */
@@ -420,7 +457,7 @@ accept_client(int sd) {
         if (retcode < 0) {
             perror("ERROR: child close()");
         } /* end if */
-        retcode = handle_client(nsd);
+        retcode = handle_client(nsd, server);
         if (retcode < 0) {
             perror("ERROR: child handle_client()");
         } /* end if */
@@ -478,7 +515,7 @@ main(int argc, char *argv[]) {
     while (server_running) {
         // pause();
         // start accepting clients TODO: add error handling to accept_client
-        accept_client(sd);
+        accept_client(sd, &my_opt);
     } /* end while */
 
     printf("[%d] Good Bye...", getpid());

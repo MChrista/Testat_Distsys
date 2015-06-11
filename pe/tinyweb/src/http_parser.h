@@ -12,9 +12,9 @@
 
 typedef struct
 {
-	char method[4];
+	char method[5];
 	char filename[50];
-	char protocol[8];
+	char protocol[9];
 } parsed_http_header;
 
 extern parsed_http_header parse_http_header(char *header);

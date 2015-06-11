@@ -18,6 +18,7 @@ Man pages:
 - man 3 strchr
 - man 3 memcpy
 - man 2 send
+- man 3 strcat
 
 hauptsächlich bearbeitet:
 1.) Florian Hink
