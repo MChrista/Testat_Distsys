@@ -42,6 +42,7 @@
 #include "sem_print.h"
 
 #include "http_parser.h"
+#include "content.h"
 
 // Must be true for the server accepting clients,
 // otherwise, the server will terminate
@@ -287,7 +288,7 @@ create_server_socket(prog_options_t *server)
     } /* end if */
 
     return sfd;
-} /* end of creater_server_socket */
+} /* end of create_server_socket */
 
 /**
  * Write connection details to log.
@@ -300,34 +301,59 @@ write_log()
 } /* end of write_log */
 
 /**
- * the request method GET
- * @param  the socket descriptor
- * @return >0 in case of error
+ * creates the http response header
+ * @param   the requested file
+ * @return  >0 in case of error
  */
 static int
-get_method(int sd)
+create_response_header(const char *filename)
+{
+    // TODO implement this!
+    /*
+    char *header = 
+        "HTTP/1.1 200 OK\n"
+        "Date: Thu, 19 Feb 2009 12:27:04 GMT\n"
+        "Server: Apache/2.2.3\n"
+        "Last-Modified: Wed, 18 Jun 2003 16:05:58 GMT\n"
+        "Content-Length: 15\n"
+        "Content-Type: text/html\n"
+        "Connection: close\n"
+        "Accept-Ranges: bytes\n"
+        "Content-Location: /index.html\n"
+    */
+} /* end of create_response_header */
+
+/**
+ * creates the reply to client
+ * @param   the socket descriptor
+ * @param   the HTTP Method (1=GET, 0=HEAD)
+ * @return  >0 in case of error
+ */
+static int
+return_method(int sd, int type)
 {
     // TODO: fix this function
     int retcode;
-    retcode = write(sd, "I got your message", 18);
+
+    switch(type) {
+        case 1: /* GET */
+            break;
+        case 0: /* HEAD */
+            break;
+        default: /* unsupported */
+            break;
+    }
+
+    char *reply = "Hello World!";
+    
+    retcode = send(sd, reply, strlen(reply), 0);
     if(retcode < 0) {
         perror("ERROR: write()");
         return -1;
     }
+    safe_printf("run through\n");
     return retcode;
-} /* end of get_method */
-
-/*
- * the request method HEAD
- * @param the socket descriptor
- * @return >0 in case of error
- */
-static int
-head_method(int sd)
-{
-    // TODO: implement this method
-    return 0;
-} /* end of head_method */
+} /* end of return_method */
 
 /**
  * Handle clients.
@@ -349,6 +375,7 @@ handle_client(int sd)
         if (cc < 0) { /* error occured while reading */
             perror("ERROR: read()");
         } else if (cc == 0) { /* zero indicates end of file */
+            //TODO handle connection closed
             //safe_printf("%s\n", "connection closed!");
         } /* end if */
     }
@@ -359,13 +386,13 @@ handle_client(int sd)
     // determine the method type
     if(strncmp(parsed_header.method, "GET", sizeof(parsed_header.method)) == 0) { /* GET method */
         //safe_printf("%s\n", "GET method called");
-        get_method(sd);
+        return_method(sd, 1);
     } else if (strncmp(parsed_header.method, "HEAD", sizeof(parsed_header.method)) == 0) { /* HEAD method */
         //safe_printf("%s\n", "HEAD method called");
-        head_method(sd);
+        return_method(sd, 0);
     } else { /* unsupported method */
-        //TODO: implement unsupported method
         //safe_printf("%s\n", "unsupported method called");
+        return_method(sd, -1);
     } /* end if */
 
     // write request to log file
@@ -416,7 +443,7 @@ accept_client(int sd)
     } else { /* error while forking */
         // use our own thread-safe implemention of printf
         safe_printf("ERROR: fork()");
-        exit(EXIT_FAILURE);
+        //exit(EXIT_FAILURE);
     }
 
     return nsd;
