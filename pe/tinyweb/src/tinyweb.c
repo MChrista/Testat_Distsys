@@ -327,9 +327,12 @@ create_response_header(char *filename, prog_options_t *server) {
         /* requested file doesn't exist */
         // TODO: return http status 404
         return -1;
-    } else if (!(S_ISROTH(fileinfo.st_mode))) {
+    } else if ((fileinfo.st_mode & S_IFMT) == S_IROTH) {
         /* requested file is not for public */
         // TODO: return http status 403
+        return -1;
+    } else if(S_ISDIR(fileinfo.st_mode) && (((fileinfo.st_mode & S_IFMT) == S_IXOTH))) {
+        /* requested 'file' is a directory */
         return -1;
     } /* end if */
 

@@ -21,6 +21,8 @@ Man pages:
 - man 3 strcat
 
 hauptsächlich bearbeitet:
-1.) Florian Hink
-2.) Florian Hink
-8.) Florian Hink
+1.) 	Florian Hink
+2.) 	Florian Hink
+8.) 	Florian Hink
+9.) 	Florian Hink
+11.) 	Florian Hink
