@@ -61,6 +61,7 @@ typedef struct http_header {
 
 extern http_method_entry_t http_method_list[];
 extern http_status_entry_t http_status_list[];
+extern char* http_header_field_list[];
 
 #endif
 

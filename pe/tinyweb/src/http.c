@@ -44,3 +44,15 @@ http_status_entry_t http_status_list[] = {
     { 500, "Internal Server Error"           },  // HTTP_STATUS_INTERNAL_SERVER_ERROR
     { 501, "Not Implemented"                 }   // HTTP_STATUS_NOT_IMPLEMENTED
 };
+
+char* http_header_field_list[] = {
+    "Date: ",
+    "Server: ",
+    "Last-Modified: ",
+    "Content-Length: ",
+    "Content-Type: ",
+    "Connection: ",
+    "Accept-Ranges: ",
+    "Location: ",
+    "Range"
+};

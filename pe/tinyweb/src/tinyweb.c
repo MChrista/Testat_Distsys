@@ -277,6 +277,57 @@ write_log() {
 } /* end of write_log */
 
 /**
+ * strcat for char pointer
+ * @param   the first pointer
+ * @param   the second pointer
+ * @return  the concatenated char pointer
+ */
+char *scat(char *s,char *t)
+{
+    char *p=malloc(strlen(s)+strlen(t)+1);
+    int ptr =0, temp = 0;               
+
+    while(s[temp]!='\0'){      
+        p[ptr++] = s[temp++];
+    }
+    temp=0;
+    while(t[temp]!='\0'){   
+        p[ptr++]=t[temp++];
+    }
+    return p;
+}
+
+/**
+ * creates as string from the header
+ * @param   the http header
+ * @return  the char pointer
+ */
+static char
+*header_to_string(http_header_t header)
+{
+    //safe_printf("%s\n", header.status);
+    char *response = "";
+    // TODO: make this a loop! Maybe by magic...
+    /*
+    for(int i=0; i<8; i++) {
+        response = scat(response, http_header_field_list[i]);
+        response = scat(response, header.server);
+        response = scat(response, "\n");
+    }
+    */
+    // Date
+    response = scat(scat(scat(response, http_header_field_list[0]), header.date), "\n");
+    // Server
+    response = scat(scat(scat(response, http_header_field_list[1]), header.server), "\n");
+    // Last-modified
+    response = scat(scat(scat(response, http_header_field_list[2]), header.last_modified), "\n");
+
+    // close header
+    response = scat(response, "\r\n\r\n");
+    return response;
+}
+
+/**
  * creates the http response header
  * @param   the desired http status
  * @param   the file status
@@ -304,19 +355,21 @@ create_response_header(struct http_status_entry status, struct stat filestatus, 
     strcat(statusString, "\n");
     result.status = statusString;
 
-    //safe_printf(statusString);
+    //safe_printf("%s\n", statusString);
 
     // date
     // TODO: get the date
+    result.date = "2015";
     // server
-    result.server = "TinyWeb (Build Jun 11 2015)\n";
+    result.server = "TinyWeb (Build Jun 11 2015)";
     // last-modified
-    //result.last_modified = filestatus.st_mtime;
+    result.last_modified = ctime(&filestatus.st_mtime);
     // content-length
+    // TODO: calculate the content-length
     // content-type
     // TODO: get the mime-type of the requested file
     // connection
-    result.connection = "close\n";
+    result.connection = "close";
     // accept-ranges
     // content-location
     // TODO: if(statuscode = 301) -> give location
@@ -340,6 +393,8 @@ return_http_file(int sd, char *type, char *filename, char *protocol, prog_option
     int retcode;            /* the return code */
     struct stat filestatus; /* file metadata */
     struct http_status_entry http_status;   /* the http status */
+    http_header_t header;            /* the freshly assembled header */
+    char *reply = "Not yet implemented!\n"; /* the reply char pointer with default value */
 
     // default the status to 500
     http_status = http_status_list[8];
@@ -386,18 +441,20 @@ return_http_file(int sd, char *type, char *filename, char *protocol, prog_option
     if (strncmp(type, "GET", sizeof("GET")) == 0) { 
         /* GET method */
         http_status = http_status_list[0];
-        create_response_header(http_status, filestatus, protocol);
+        header = create_response_header(http_status, filestatus, protocol);
+        reply = header_to_string(header);
+        //safe_printf(reply);
     } else if (strncmp(type, "HEAD", sizeof("HEAD")) == 0) { 
         /* HEAD method */
         http_status = http_status_list[0];
-        create_response_header(http_status, filestatus, protocol);
+        header = create_response_header(http_status, filestatus, protocol);
+        reply = header_to_string(header);
+        //safe_printf(reply);
     } else { 
         /* unsupported method -> 501 */
         http_status = http_status_list[9];
         create_response_header(http_status, filestatus, protocol);
     } /* end if */
-
-    char *reply = "Hello World!\n";
 
     retcode = write(sd, reply, strlen(reply) - 1);
     if (retcode < 0) {
