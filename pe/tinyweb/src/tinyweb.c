@@ -285,14 +285,14 @@ write_log() {
 char *scat(char *s,char *t)
 {
     char *p=malloc(strlen(s)+strlen(t)+1);
-    int ptr =0, temp = 0;               
+    int ptr = 0, temp = 0;               
 
-    while(s[temp]!='\0'){      
+    while(s[temp] != '\0'){      
         p[ptr++] = s[temp++];
     }
-    temp=0;
-    while(t[temp]!='\0'){   
-        p[ptr++]=t[temp++];
+    temp = 0;
+    while(t[temp] != '\0'){   
+        p[ptr++] = t[temp++];
     }
     return p;
 }
@@ -305,25 +305,22 @@ char *scat(char *s,char *t)
 static char
 *header_to_string(http_header_t header)
 {
-    //safe_printf("%s\n", header.status);
+    safe_printf("%s\n", header.status);
     char *response = "";
-    // TODO: make this a loop! Maybe by magic...
-    /*
-    for(int i=0; i<8; i++) {
-        response = scat(response, http_header_field_list[i]);
-        response = scat(response, header.server);
-        response = scat(response, "\n");
-    }
-    */
-    // Date
-    response = scat(scat(scat(response, http_header_field_list[0]), header.date), "\n");
-    // Server
-    response = scat(scat(scat(response, http_header_field_list[1]), header.server), "\n");
-    // Last-modified
-    response = scat(scat(scat(response, http_header_field_list[2]), header.last_modified), "\n");
 
+    // status
+    response = scat(scat(response, header.status), "\n");
+    // date
+    response = scat(scat(scat(response, http_header_field_list[0]), header.date), "\n");
+    // server
+    response = scat(scat(scat(response, http_header_field_list[1]), header.server), "\n");
+    // last-modified /* already with /n because auf ctime call */
+    response = scat(scat(response, http_header_field_list[2]), header.last_modified);
+    // connection-close
+    response = scat(scat(scat(response, http_header_field_list[5]), header.connection), "\n");
     // close header
     response = scat(response, "\r\n\r\n");
+
     return response;
 }
 
@@ -340,6 +337,7 @@ create_response_header(struct http_status_entry status, struct stat filestatus, 
     
     // status
     // TODO: fix this to something nicer
+    /*
     char statuscode[4];
     sprintf(statuscode, "%d", status.code);
     char statusString[50];
@@ -354,14 +352,20 @@ create_response_header(struct http_status_entry status, struct stat filestatus, 
     strcat(statusString, status.text);
     strcat(statusString, "\n");
     result.status = statusString;
-
+    */
     //safe_printf("%s\n", statusString);
+    //char *statuscode = "";
+    //sprintf(statuscode, "%d", status.code);
+    //scat(protocol, "\0");
+    //result.status = scat(scat(result.status, protocol), statuscode);
+    //sprintf(statuscode, " %d ", status.code);
+    result.status = "";
 
     // date
     // TODO: get the date
     result.date = "2015";
     // server
-    result.server = "TinyWeb (Build Jun 11 2015)";
+    result.server = "TinyWeb Version 0.4.1";
     // last-modified
     result.last_modified = ctime(&filestatus.st_mtime);
     // content-length
