@@ -316,6 +316,8 @@ static char
     response = scat(scat(scat(response, http_header_field_list[1]), header.server), "\n");
     // last-modified /* already with /n because auf ctime call */
     response = scat(scat(response, http_header_field_list[2]), header.last_modified);
+    // content-length
+    response = scat(scat(scat(response, http_header_field_list[3]),header.content_length), "\n");
     // content-type
     response = scat(scat(scat(response, http_header_field_list[4]), header.content_type), "\n");
     // connection-close
@@ -339,30 +341,9 @@ create_response_header(struct http_status_entry status, struct stat filestatus, 
     
     // status
     // TODO: concatenate the http status
-    /*
-    char statuscode[4];
-    sprintf(statuscode, "%d", status.code);
-    char statusString[50];
-    char stringProtocol[9];
-    bzero(stringProtocol, sizeof(stringProtocol));
-    memcpy(stringProtocol, protocol, 8);
-    bzero(statusString, sizeof(statusString));
-    strcpy(statusString, stringProtocol);
-    strcat(statusString, "\x20");
-    strcat(statusString, statuscode);
-    strcat(statusString, "\x20");
-    strcat(statusString, status.text);
-    strcat(statusString, "\n");
-    result.status = statusString;
-    */
-    //safe_printf("%s\n", statusString);
-    //char *statuscode = "";
-    //sprintf(statuscode, "%d", status.code);
-    //scat(protocol, "\0");
-    //result.status = scat(scat(result.status, protocol), statuscode);
+    // CAUTION: not every string is 0-terminated!
     result.status = "HTTP/1.1 200 OK";
-    // not every string is 0-terminated!
-    //snprintf(result.status, sizeof(result.status), "%d %s", status.code, status.text);
+
 
     // date
     // TODO: fix the date
@@ -377,29 +358,37 @@ create_response_header(struct http_status_entry status, struct stat filestatus, 
     strftime(timeString, 80, "%a, %d %b %Y %T %z %p.", timeinfo);
     result.date = timeString;
     
+
     // server
     result.server = "TinyWeb Version 0.4.1";
     
+
     // last-modified
     result.last_modified = ctime(&filestatus.st_mtime);
     
+
     // content-length
     // TODO: calculate the content-length
-    
+    char filesize[256];
+    sprintf(filesize, "%lld", (long long)filestatus.st_size);
+    result.content_length = filesize;
+
     // content-type
-    // TODO: get the mime-type of the requested file
-    //result.content_type = "";
     http_content_type_t contentType;
     contentType = get_http_content_type(filename);
     result.content_type = get_http_content_type_str(contentType);
     
+
     // connection
     result.connection = "close";
     
+
     // accept-ranges
     
+
     // content-location
     // TODO: if(statuscode = 301) -> give location
+
 
     return result;
 } /* end of create_response_header */
@@ -414,13 +403,13 @@ create_response_header(struct http_status_entry status, struct stat filestatus, 
  */
 static int
 return_http_file(int sd, char *type, char *filename, char *protocol, prog_options_t *server) {
-    // TODO: nur den parsed header als Parameter als alle 3 Elemente daraus
-    char *internalFilename; /* internal filename for check */
+    // TODO: nur den parsed header als Parameter als alle 3 Elemente
+    char *internalFilename;                 /* internal filename for check */
     char *filepath = server->root_dir;      /* the resulting file path */
-    int retcode;            /* the return code */
-    struct stat filestatus; /* file metadata */
+    int retcode;                            /* the return code */
+    struct stat filestatus;                 /* file metadata */
     struct http_status_entry http_status;   /* the http status */
-    http_header_t header;            /* the freshly assembled header */
+    http_header_t header;                   /* the freshly assembled header */
     char *reply = "Not yet implemented!\n"; /* the reply char pointer with default value */
 
     // default the status to 500
@@ -450,7 +439,8 @@ return_http_file(int sd, char *type, char *filename, char *protocol, prog_option
     if(!(S_ISREG(filestatus.st_mode))) {
         /* requested file doesn't exist -> 404 */
         http_status = http_status_list[6];
-        create_response_header(http_status, filestatus, protocol, filename);
+        header = create_response_header(http_status, filestatus, protocol, filename);
+        reply = header_to_string(header);
         return -1;
     } else if ((filestatus.st_mode & S_IFMT) == S_IROTH) {
         /* requested file is not for public -> 403 */
