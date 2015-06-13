@@ -305,7 +305,7 @@ char *scat(char *s,char *t)
 static char
 *header_to_string(http_header_t header)
 {
-    safe_printf("%s\n", header.status);
+    //safe_printf("%s\n", header.status);
     char *response = "";
 
     // status
@@ -316,6 +316,8 @@ static char
     response = scat(scat(scat(response, http_header_field_list[1]), header.server), "\n");
     // last-modified /* already with /n because auf ctime call */
     response = scat(scat(response, http_header_field_list[2]), header.last_modified);
+    // content-type
+    response = scat(scat(scat(response, http_header_field_list[4]), header.content_type), "\n");
     // connection-close
     response = scat(scat(scat(response, http_header_field_list[5]), header.connection), "\n");
     // close header
@@ -332,11 +334,11 @@ static char
  * @return  >0 in case of error
  */
 static http_header_t
-create_response_header(struct http_status_entry status, struct stat filestatus, char *protocol) {
+create_response_header(struct http_status_entry status, struct stat filestatus, char *protocol, char *filename) {
     http_header_t result; /* the header to return */
     
     // status
-    // TODO: fix this to something nicer
+    // TODO: concatenate the http status
     /*
     char statuscode[4];
     sprintf(statuscode, "%d", status.code);
@@ -358,23 +360,44 @@ create_response_header(struct http_status_entry status, struct stat filestatus, 
     //sprintf(statuscode, "%d", status.code);
     //scat(protocol, "\0");
     //result.status = scat(scat(result.status, protocol), statuscode);
-    //sprintf(statuscode, " %d ", status.code);
-    result.status = "";
+    result.status = "HTTP/1.1 200 OK";
+    // not every string is 0-terminated!
+    //snprintf(result.status, sizeof(result.status), "%d %s", status.code, status.text);
 
     // date
-    // TODO: get the date
-    result.date = "2015";
+    // TODO: fix the date
+    /* get time and format to rfc 2616 */
+    time_t rawtime;
+    struct tm * timeinfo;
+    char timeString [80];
+
+    time (&rawtime);
+    timeinfo = localtime (&rawtime);
+
+    strftime(timeString, 80, "%a, %d %b %Y %T %z %p.", timeinfo);
+    result.date = timeString;
+    
     // server
     result.server = "TinyWeb Version 0.4.1";
+    
     // last-modified
     result.last_modified = ctime(&filestatus.st_mtime);
+    
     // content-length
     // TODO: calculate the content-length
+    
     // content-type
     // TODO: get the mime-type of the requested file
+    //result.content_type = "";
+    http_content_type_t contentType;
+    contentType = get_http_content_type(filename);
+    result.content_type = get_http_content_type_str(contentType);
+    
     // connection
     result.connection = "close";
+    
     // accept-ranges
+    
     // content-location
     // TODO: if(statuscode = 301) -> give location
 
@@ -427,17 +450,17 @@ return_http_file(int sd, char *type, char *filename, char *protocol, prog_option
     if(!(S_ISREG(filestatus.st_mode))) {
         /* requested file doesn't exist -> 404 */
         http_status = http_status_list[6];
-        create_response_header(http_status, filestatus, protocol);
+        create_response_header(http_status, filestatus, protocol, filename);
         return -1;
     } else if ((filestatus.st_mode & S_IFMT) == S_IROTH) {
         /* requested file is not for public -> 403 */
         http_status = http_status_list[5];
-        create_response_header(http_status, filestatus, protocol);
+        create_response_header(http_status, filestatus, protocol, filename);
         return -1;
     } else if(S_ISDIR(filestatus.st_mode) && (((filestatus.st_mode & S_IFMT) == S_IXOTH))) {
         /* requested 'file' is a directory -> 301 */
         http_status = http_status_list[2];
-        create_response_header(http_status, filestatus, protocol);
+        create_response_header(http_status, filestatus, protocol, filename);
         return -1;
     } /* end if */
 
@@ -445,19 +468,19 @@ return_http_file(int sd, char *type, char *filename, char *protocol, prog_option
     if (strncmp(type, "GET", sizeof("GET")) == 0) { 
         /* GET method */
         http_status = http_status_list[0];
-        header = create_response_header(http_status, filestatus, protocol);
+        header = create_response_header(http_status, filestatus, protocol, filename);
         reply = header_to_string(header);
         //safe_printf(reply);
     } else if (strncmp(type, "HEAD", sizeof("HEAD")) == 0) { 
         /* HEAD method */
         http_status = http_status_list[0];
-        header = create_response_header(http_status, filestatus, protocol);
+        header = create_response_header(http_status, filestatus, protocol, filename);
         reply = header_to_string(header);
         //safe_printf(reply);
     } else { 
         /* unsupported method -> 501 */
         http_status = http_status_list[9];
-        create_response_header(http_status, filestatus, protocol);
+        create_response_header(http_status, filestatus, protocol, filename);
     } /* end if */
 
     retcode = write(sd, reply, strlen(reply) - 1);

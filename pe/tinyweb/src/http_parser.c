@@ -25,12 +25,14 @@ parse_http_header(char *header)
 	char delimiter[] = " ";
 	char *pointer;
 
+	//TODO: fix the parsing function
+
 	// request method
 	pointer = strtok(header, delimiter);
-	memcpy(parsed_header.method, pointer, sizeof(parsed_header.method));
+	memcpy(parsed_header.method, pointer, sizeof(parsed_header.method) + 1);
 	// requested file
 	pointer = strtok(NULL, delimiter);
-	memcpy(parsed_header.filename, pointer, sizeof(parsed_header.filename));
+	memcpy(parsed_header.filename, pointer, sizeof(parsed_header.filename) + 1);
 	// requested protocol
 	pointer = strtok(NULL, delimiter);
 	memcpy(parsed_header.protocol, pointer, sizeof(parsed_header.protocol));
