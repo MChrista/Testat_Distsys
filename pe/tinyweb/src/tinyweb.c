@@ -295,7 +295,7 @@ char *scat(char *s,char *t)
         p[ptr++] = t[temp++];
     }
     return p;
-}
+} /* end of scat */
 
 /**
  * creates as string from the header
@@ -326,7 +326,7 @@ static char
     response = scat(response, "\r\n\r\n");
 
     return response;
-}
+} /* end of header_to_string */
 
 /**
  * creates the http response header
@@ -339,56 +339,72 @@ static http_header_t
 create_response_header(struct http_status_entry status, struct stat filestatus, char *protocol, char *filename) {
     http_header_t result; /* the header to return */
     
-    // status
+    time_t rawtime;       /* server time */
+    struct tm * timeinfo; /* used for date field */
+    char timeString [80]; /* the time as a string */
+
+    /*
+     * http status
+     */
     // TODO: concatenate the http status
     // CAUTION: not every string is 0-terminated!
-    result.status = "HTTP/1.1 200 OK";
+    //result.status = "HTTP/1.1 200 OK";
+    result.status = "";
+    result.status = scat(scat(result.status, protocol), status.text);
 
 
-    // date
-    // TODO: fix the date
+    /*
+     * date
+     */
     /* get time and format to rfc 2616 */
-    time_t rawtime;
-    struct tm * timeinfo;
-    char timeString [80];
-
     time (&rawtime);
     timeinfo = localtime (&rawtime);
-
     strftime(timeString, 80, "%a, %d %b %Y %T %z %p.", timeinfo);
     result.date = timeString;
     
-
-    // server
+    /*
+     * server
+     */
     result.server = "TinyWeb Version 0.4.1";
     
-
-    // last-modified
+    /*
+     * last-modified
+     */
     result.last_modified = ctime(&filestatus.st_mtime);
     
-
-    // content-length
-    // TODO: calculate the content-length
+    /*
+     * content-length
+     */
     char filesize[256];
     sprintf(filesize, "%lld", (long long)filestatus.st_size);
     result.content_length = filesize;
 
-    // content-type
+    /*
+     * content-type
+     */
     http_content_type_t contentType;
     contentType = get_http_content_type(filename);
     result.content_type = get_http_content_type_str(contentType);
     
-
-    // connection
+    /*
+     * connection
+     */
     result.connection = "close";
     
+    /*
+     * accept-ranges
+     */
+    // TODO
 
-    // accept-ranges
-    
-
-    // content-location
+    /*
+     * content-location
+     */
     // TODO: if(statuscode = 301) -> give location
 
+    /*
+     * range
+     */
+    // TODO 
 
     return result;
 } /* end of create_response_header */
@@ -473,6 +489,7 @@ return_http_file(int sd, char *type, char *filename, char *protocol, prog_option
         create_response_header(http_status, filestatus, protocol, filename);
     } /* end if */
 
+    // TODO: write the requested file to sd
     retcode = write(sd, reply, strlen(reply) - 1);
     if (retcode < 0) {
         perror("ERROR: write()");
