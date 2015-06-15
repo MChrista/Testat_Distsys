@@ -294,6 +294,7 @@ char *scat(char *s,char *t)
     while(t[temp] != '\0'){   
         p[ptr++] = t[temp++];
     }
+    p[ptr] = '\0';
     return p;
 } /* end of scat */
 
@@ -349,8 +350,10 @@ create_response_header(struct http_status_entry status, struct stat filestatus, 
     // TODO: concatenate the http status
     // CAUTION: not every string is 0-terminated!
     //result.status = "HTTP/1.1 200 OK";
-    result.status = "";
-    result.status = scat(scat(result.status, protocol), status.text);
+    char *statusString = malloc(strlen(protocol) + strlen(status.text) + 1);
+    strcpy(statusString,protocol);
+    strcat(statusString,(char *)status.text);
+    result.status = statusString;
 
 
     /*
@@ -489,7 +492,16 @@ return_http_file(int sd, char *type, char *filename, char *protocol, prog_option
         create_response_header(http_status, filestatus, protocol, filename);
     } /* end if */
 
+    
     // TODO: write the requested file to sd
+    char *buffer = malloc(filestatus.st_size);
+    int fd;
+    fd = open(filename,O_RDONLY);
+    int cc;
+    while ((cc = read(fd, buffer, filestatus.st_size)) > 0) {
+    }
+    close(fd);
+    
     retcode = write(sd, reply, strlen(reply) - 1);
     if (retcode < 0) {
         perror("ERROR: write()");
