@@ -322,7 +322,7 @@ static char
     // content-type
     response = scat(scat(scat(response, http_header_field_list[4]), header.content_type), "\n");
     // connection-close
-    response = scat(scat(scat(response, http_header_field_list[5]), header.connection), "\n");
+    //response = scat(scat(scat(response, http_header_field_list[5]), header.connection), "\n");
     // close header
     response = scat(response, "\r\n\r\n");
 
@@ -349,12 +349,13 @@ create_response_header(struct http_status_entry status, struct stat filestatus, 
      */
     // TODO: concatenate the http status
     // CAUTION: not every string is 0-terminated!
-    //result.status = "HTTP/1.1 200 OK";
+    result.status = "HTTP/1.1 200 OK";
+     /*
     char *statusString = malloc(strlen(protocol) + strlen(status.text) + 1);
     strcpy(statusString,protocol);
     strcat(statusString,(char *)status.text);
     result.status = statusString;
-
+    */
 
     /*
      * date
@@ -392,7 +393,7 @@ create_response_header(struct http_status_entry status, struct stat filestatus, 
     /*
      * connection
      */
-    result.connection = "close";
+    //result.connection = "close";
     
     /*
      * accept-ranges
@@ -496,13 +497,22 @@ return_http_file(int sd, char *type, char *filename, char *protocol, prog_option
     // TODO: write the requested file to sd
     char *buffer = malloc(filestatus.st_size);
     int fd;
-    fd = open(filename,O_RDONLY);
+    fd = open(filepath,O_RDONLY);
     int cc;
     while ((cc = read(fd, buffer, filestatus.st_size)) > 0) {
     }
     close(fd);
     
+    // write header
     retcode = write(sd, reply, strlen(reply) - 1);
+    if (retcode < 0) {
+        perror("ERROR: write()");
+        return -1;
+    }
+
+    // write file
+    // TODO: write file bytewise
+    retcode = write(sd, buffer, filestatus.st_size);
     if (retcode < 0) {
         perror("ERROR: write()");
         return -1;
@@ -584,6 +594,7 @@ accept_client(int sd, prog_options_t *server) {
         if (retcode < 0) {
             perror("ERROR: child handle_client()");
         } /* end if */
+        // TODO: muss man hier sd vom Kind schließen?!
         exit(EXIT_SUCCESS);
     } else if (pid > 0) { /* parent process */
         retcode = close(nsd);
