@@ -422,15 +422,17 @@ create_response_header(struct http_status_entry status, struct stat filestatus, 
  * @return  >0 in case of error
  */
 static int
-return_http_file(int sd, char *type, char *filename, char *protocol, prog_options_t *server) {
-    // TODO: nur den parsed header als Parameter als alle 3 Elemente
-    char *internalFilename;                 /* internal filename for check */
-    char *filepath = server->root_dir;      /* the resulting file path */
-    int retcode;                            /* the return code */
-    struct stat filestatus;                 /* file metadata */
-    struct http_status_entry http_status;   /* the http status */
-    http_header_t header;                   /* the freshly assembled header */
-    char *reply = "Not yet implemented!\n"; /* the reply char pointer with default value */
+return_http_file(int sd, parsed_http_header_t parsed_header, prog_options_t *server) {
+    char *internalFilename;                  /* internal filename for check */
+    char *filepath = server->root_dir;       /* the resulting file path */
+    int retcode;                             /* the return code */
+    struct stat filestatus;                  /* file metadata */
+    struct http_status_entry http_status;    /* the http status */ 
+    http_header_t header;                    /* the freshly assembled header */
+    char *reply = "Not yet implemented!\n";  /* the reply char pointer with default value */
+    char *protocol = parsed_header.protocol; /* the request protocol */
+    char *filename = parsed_header.filename; /* the requested file */
+    char *type     = parsed_header.method;   /* the request method */
 
     // default the status to 500
     http_status = http_status_list[8];
@@ -450,6 +452,9 @@ return_http_file(int sd, char *type, char *filename, char *protocol, prog_option
     retcode = stat(filepath, &filestatus);
     if(retcode < 0) {
         // TODO: handle 'No such file or directory' with 404
+        if(retcode == 0) {
+            safe_printf("found errno 2");
+        }
         perror("ERROR: stat()");
         return -1;
     }
@@ -544,7 +549,7 @@ handle_client(int sd, prog_options_t *server) {
 
         //safe_printf("%s\n", parsed_header.protocol);
 
-        return_http_file(sd, parsed_header.method, parsed_header.filename, parsed_header.protocol, server);
+        return_http_file(sd, parsed_header, server);
     }
     if (cc < 0) { /* error occured while reading */
         perror("ERROR: read()");
