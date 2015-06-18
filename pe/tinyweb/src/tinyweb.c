@@ -268,15 +268,6 @@ create_server_socket(prog_options_t *server) {
 } /* end of create_server_socket */
 
 /**
- * Write connection details to log.
- */
-static int
-write_log() {
-    // TODO: stdout or log file?!
-    return 0;
-} /* end of write_log */
-
-/**
  * strcat for char pointer
  * @param   the first pointer
  * @param   the second pointer
@@ -284,6 +275,7 @@ write_log() {
  */
 char *scat(char *s,char *t)
 {
+    //TODO: remove this function
     char *p=malloc(strlen(s)+strlen(t)+1);
     int ptr = 0, temp = 0;               
 
@@ -309,6 +301,7 @@ static char
     //safe_printf("%s\n", header.status);
     char *response = "";
 
+    // TODO: replace scat with strcat
     // status
     response = scat(scat(response, header.status), "\n");
     // date
@@ -424,7 +417,7 @@ create_response_header(struct http_status_entry status, struct stat filestatus, 
 static int
 return_http_file(int sd, parsed_http_header_t parsed_header, prog_options_t *server) {
     char *internalFilename;                  /* internal filename for check */
-    char *filepath = server->root_dir;       /* the resulting file path */
+    char *reqFile = server->root_dir;        /* the resulting file path */
     int retcode;                             /* the return code */
     struct stat filestatus;                  /* file metadata */
     struct http_status_entry http_status;    /* the http status */ 
@@ -450,9 +443,9 @@ return_http_file(int sd, parsed_http_header_t parsed_header, prog_options_t *ser
     } /* end if */
 
     // path to folder + filename
-    strcat(filepath, internalFilename);
+    strcat(reqFile, internalFilename);
 
-    retcode = stat(filepath, &filestatus);
+    retcode = stat(reqFile, &filestatus);
     if(retcode < 0) {
         // TODO: handle 'No such file or directory' with 404
         perror("ERROR: stat()");
@@ -463,6 +456,7 @@ return_http_file(int sd, parsed_http_header_t parsed_header, prog_options_t *ser
     // check the requested file
     if(!(S_ISREG(filestatus.st_mode))) {
         /* requested file doesn't exist -> 404 */
+        // TODO: this is probably dead code
         http_status = http_status_list[6];
         header = create_response_header(http_status, filestatus, protocol, filename);
         reply = header_to_string(header);
@@ -506,9 +500,9 @@ return_http_file(int sd, parsed_http_header_t parsed_header, prog_options_t *ser
     }
 
     // write file
-    file = open(filepath, O_RDONLY);
+    file = open(reqFile, O_RDONLY);
     if (file < 0) {
-        perror("ERROR: fopen()");
+        perror("ERROR: fopen():");
     }
 
     while (read(file, &chunk, chunkSize)) {
@@ -543,8 +537,6 @@ handle_client(int sd, prog_options_t *server) {
         // parse the header
         parsed_header = parse_http_header(buf);
 
-        //safe_printf("%s\n", parsed_header.protocol);
-
         return_http_file(sd, parsed_header, server);
     }
     if (cc < 0) { /* error occured while reading */
@@ -554,10 +546,7 @@ handle_client(int sd, prog_options_t *server) {
         //safe_printf("%s\n", "connection closed!");
     } /* end if */
 
-
-
-    // write request to log file
-    write_log();
+    // TODO: write request to log file
     return 0;
 } /* end of handle_client */
 
@@ -569,12 +558,14 @@ handle_client(int sd, prog_options_t *server) {
  */
 static int
 accept_client(int sd, prog_options_t *server) {
+    
     signal(SIGCHLD, sig_handler);
-    int nsd; /* new socket descriptor */
-    struct sockaddr_in client; /* the input sockaddr */
+    
+    int nsd;                    /* new socket descriptor */
+    pid_t pid;                  /* process id */
+    int retcode;                /* return code */
+    struct sockaddr_in client;  /* the input sockaddr */
     socklen_t client_len = sizeof (client); /* the length of it */
-    pid_t pid; /* process id */
-    int retcode; /* return code */
 
     /*
      * accept clients on the socket
@@ -586,7 +577,10 @@ accept_client(int sd, prog_options_t *server) {
     }
 
     pid = fork();
-    if (pid == 0) { /* child process */
+    if (pid == 0) {
+        /* 
+         * child process 
+         */
         retcode = close(sd);
         if (retcode < 0) {
             perror("ERROR: child close()");
@@ -597,15 +591,19 @@ accept_client(int sd, prog_options_t *server) {
         } /* end if */
         // TODO: muss man hier sd vom Kind schließen?!
         exit(EXIT_SUCCESS);
-    } else if (pid > 0) { /* parent process */
+    } else if (pid > 0) { 
+        /* 
+         * parent process 
+         */
         retcode = close(nsd);
         if (retcode < 0) {
             perror("ERROR: parent close()");
         } /* end if */
-    } else { /* error while forking */
-        // use our own thread-safe implemention of printf
+    } else { 
+        /* 
+         * error while forking 
+         */
         safe_printf("ERROR: fork()");
-        //exit(EXIT_FAILURE);
     }
 
     return nsd;
@@ -634,7 +632,6 @@ main(int argc, char *argv[]) {
     check_root_dir(&my_opt);
     install_signal_handlers();
     init_logging_semaphore();
-    // TODO: check existence of log_file
 
     // create the socket
     sd = create_server_socket(&my_opt);
@@ -642,14 +639,14 @@ main(int argc, char *argv[]) {
         perror("ERROR: creating socket()");
     } /* end if */
 
-    // TODO: start the server and handle clients...
+    print_log("%s/n", "Hello World!");
+
     // here, as an example, show how to interact with the
     // condition set by the signal handler above
     printf("[%d] Starting server '%s'...\n", getpid(), my_opt.progname);
     server_running = true;
     while (server_running) {
-        // pause();
-        // start accepting clients TODO: add error handling to accept_client
+        // TODO: add error handling to accept_client
         accept_client(sd, &my_opt);
     } /* end while */
 
