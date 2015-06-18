@@ -416,14 +416,13 @@ create_response_header(struct http_status_entry status, struct stat filestatus, 
  */
 static int
 return_http_file(int sd, parsed_http_header_t parsed_header, prog_options_t *server) {
-    char *reqFile = server->root_dir;        /* the resulting file path */
+    char *reqFile = server->root_dir;        /* the requested file path */
     int retcode;                             /* the return code */
     struct stat filestatus;                  /* file metadata */
     struct http_status_entry http_status;    /* the http status */ 
     http_header_t header;                    /* the freshly assembled header */
     char *reply = "Not yet implemented!\n";  /* the reply char pointer with default value */
     char *protocol = parsed_header.protocol; /* the request protocol */
-    char *filename = parsed_header.filename; /* the requested file */
     char *type     = parsed_header.method;   /* the request method */
     int file;                                /* file descriptor of requested file */
     int chunkSize = 256;                     /* chunk size for write of message body */
@@ -433,11 +432,12 @@ return_http_file(int sd, parsed_http_header_t parsed_header, prog_options_t *ser
     http_status = http_status_list[8];
 
     // path to folder + filename
-    strcat(reqFile, filename);
+    strcat(reqFile, parsed_header.filename);
 
     retcode = stat(reqFile, &filestatus);
     if(retcode < 0) {
         // TODO: handle 'No such file or directory' with 404
+        safe_printf("%s\n", reqFile);
         perror("ERROR: stat()");
         return -1;
     }
@@ -448,18 +448,18 @@ return_http_file(int sd, parsed_http_header_t parsed_header, prog_options_t *ser
         /* requested file doesn't exist -> 404 */
         // TODO: this is probably dead code
         http_status = http_status_list[6];
-        header = create_response_header(http_status, filestatus, protocol, filename);
+        header = create_response_header(http_status, filestatus, protocol, reqFile);
         reply = header_to_string(header);
         return -1;
     } else if ((filestatus.st_mode & S_IFMT) == S_IROTH) {
         /* requested file is not for public -> 403 */
         http_status = http_status_list[5];
-        create_response_header(http_status, filestatus, protocol, filename);
+        create_response_header(http_status, filestatus, protocol, reqFile);
         return -1;
     } else if(S_ISDIR(filestatus.st_mode) && (((filestatus.st_mode & S_IFMT) == S_IXOTH))) {
         /* requested 'file' is a directory -> 301 */
         http_status = http_status_list[2];
-        create_response_header(http_status, filestatus, protocol, filename);
+        create_response_header(http_status, filestatus, protocol, reqFile);
         return -1;
     } /* end if */
 
@@ -467,19 +467,19 @@ return_http_file(int sd, parsed_http_header_t parsed_header, prog_options_t *ser
     if (strncmp(type, "GET", sizeof("GET")) == 0) { 
         /* GET method */
         http_status = http_status_list[0];
-        header = create_response_header(http_status, filestatus, protocol, filename);
+        header = create_response_header(http_status, filestatus, protocol, reqFile);
         reply = header_to_string(header);
         //safe_printf(reply);
     } else if (strncmp(type, "HEAD", sizeof("HEAD")) == 0) { 
         /* HEAD method */
         http_status = http_status_list[0];
-        header = create_response_header(http_status, filestatus, protocol, filename);
+        header = create_response_header(http_status, filestatus, protocol, reqFile);
         reply = header_to_string(header);
         //safe_printf(reply);
     } else { 
         /* unsupported method -> 501 */
         http_status = http_status_list[9];
-        create_response_header(http_status, filestatus, protocol, filename);
+        create_response_header(http_status, filestatus, protocol, reqFile);
     } /* end if */
 
     // write header
