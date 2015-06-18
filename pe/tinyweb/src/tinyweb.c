@@ -433,6 +433,9 @@ return_http_file(int sd, parsed_http_header_t parsed_header, prog_options_t *ser
     char *protocol = parsed_header.protocol; /* the request protocol */
     char *filename = parsed_header.filename; /* the requested file */
     char *type     = parsed_header.method;   /* the request method */
+    int file;                                /* file descriptor of requested file */
+    int chunkSize = 256;                     /* chunk size for write of message body */
+    char chunk[chunkSize];                   /* chunk for write of message body */
 
     // default the status to 500
     http_status = http_status_list[8];
@@ -452,9 +455,6 @@ return_http_file(int sd, parsed_http_header_t parsed_header, prog_options_t *ser
     retcode = stat(filepath, &filestatus);
     if(retcode < 0) {
         // TODO: handle 'No such file or directory' with 404
-        if(retcode == 0) {
-            safe_printf("found errno 2");
-        }
         perror("ERROR: stat()");
         return -1;
     }
@@ -498,16 +498,6 @@ return_http_file(int sd, parsed_http_header_t parsed_header, prog_options_t *ser
         create_response_header(http_status, filestatus, protocol, filename);
     } /* end if */
 
-    
-    // TODO: write the requested file to sd
-    char *buffer = malloc(filestatus.st_size);
-    int fd;
-    fd = open(filepath,O_RDONLY);
-    int cc;
-    while ((cc = read(fd, buffer, filestatus.st_size)) > 0) {
-    }
-    close(fd);
-    
     // write header
     retcode = write(sd, reply, strlen(reply) - 1);
     if (retcode < 0) {
@@ -516,13 +506,19 @@ return_http_file(int sd, parsed_http_header_t parsed_header, prog_options_t *ser
     }
 
     // write file
-    // TODO: write file bytewise
-    retcode = write(sd, buffer, filestatus.st_size);
-    if (retcode < 0) {
-        perror("ERROR: write()");
-        return -1;
+    file = open(filepath, O_RDONLY);
+    if (file < 0) {
+        perror("ERROR: fopen()");
     }
-    //safe_printf("run through\n");
+
+    while (read(file, &chunk, chunkSize)) {
+        retcode = write(sd, chunk, chunkSize);
+        if (retcode < 0) {
+            perror("ERROR: write()");
+            return -1;
+        }
+    }
+
     return retcode;
 } /* end of return_http_file */
 
