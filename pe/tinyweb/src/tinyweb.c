@@ -416,7 +416,6 @@ create_response_header(struct http_status_entry status, struct stat filestatus, 
  */
 static int
 return_http_file(int sd, parsed_http_header_t parsed_header, prog_options_t *server) {
-    char *internalFilename;                  /* internal filename for check */
     char *reqFile = server->root_dir;        /* the resulting file path */
     int retcode;                             /* the return code */
     struct stat filestatus;                  /* file metadata */
@@ -433,17 +432,8 @@ return_http_file(int sd, parsed_http_header_t parsed_header, prog_options_t *ser
     // default the status to 500
     http_status = http_status_list[8];
 
-    // malloc to avoid really long filenames
-    internalFilename = (char *) malloc(strlen(filename) + 1);
-    if (internalFilename != NULL) {
-        strcpy(internalFilename, filename);
-    } else {
-        err_print("cannot allocate memory");
-        return EXIT_FAILURE;
-    } /* end if */
-
     // path to folder + filename
-    strcat(reqFile, internalFilename);
+    strcat(reqFile, filename);
 
     retcode = stat(reqFile, &filestatus);
     if(retcode < 0) {
@@ -638,8 +628,6 @@ main(int argc, char *argv[]) {
     if (sd < 0) {
         perror("ERROR: creating socket()");
     } /* end if */
-
-    print_log("%s/n", "Hello World!");
 
     // here, as an example, show how to interact with the
     // condition set by the signal handler above
