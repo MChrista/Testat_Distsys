@@ -10,8 +10,12 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <sys/types.h>
+#include <regex.h>
 
 #include "http_parser.h"
+
+#define MAX_MATCHES 1
 
 /**
  * parse the http header
@@ -19,36 +23,47 @@
  * @return 	the parsed header
  */
 parsed_http_header_t
-parse_http_header(char *header)
-{
-	parsed_http_header_t parsed_header;
-	
-	char delimiter[] = " ";
-	char *pointer;
+parse_http_header(char *header) {
+    parsed_http_header_t parsed_header;
 
-	//TODO: fix the parsing function
+    char delimiter[] = " ";
+    char *pointer;
 
-	// request method
-	pointer = strtok(header, delimiter);
-        printf("Length of Pointer is: %d\n", strlen(pointer));
-        parsed_header.method = malloc(strlen(pointer)+1);
-        strcpy(parsed_header.method, pointer);
-	//memcpy(parsed_header.method, pointer, sizeof(parsed_header.method) + 1);
-	// requested file
-	pointer = strtok(NULL, delimiter);
-        printf("Length of Pointer is: %d\n", strlen(pointer));
-        parsed_header.filename = malloc(strlen(pointer)+1);
-        strcpy(parsed_header.filename, pointer);
-	//memcpy(parsed_header.filename, pointer, sizeof(parsed_header.filename) + 1);
-	// requested protocol
-	pointer = strtok(NULL, delimiter);
-        printf("Length of Pointer is: %d\n", strlen(pointer));
-        parsed_header.protocol = malloc(strlen(pointer)+1);
-        strcpy(parsed_header.protocol, pointer);
-        
-        
-        printf("Method: %s\nProtocol: %s\nFilename: %s\n", parsed_header.method,parsed_header.protocol,parsed_header.filename);
-	//memcpy(parsed_header.protocol, pointer, sizeof(parsed_header.protocol));
-
-	return parsed_header;
+    //TODO: fix the parsing function
+    regex_t exp;
+    int rv = regcomp(&exp, "^\\(GET\\|HEAD\\)"
+    "[[:blank:]]"
+    "/\\([[:alnum:]]\\|/\\)\\{1,\\}\\([[:punct:]][[:alnum:]]\\{1,\\}\\)\\{0,1\\}"
+    "[[:blank:]]"
+    "HTTP/[[:digit:]][[:punct:]][[:digit:]]\r$", REG_NEWLINE);
+    if (rv != 0) {
+        printf("regcomp failed with %d\n", rv);
+    }
+    regmatch_t matches[MAX_MATCHES];
+    char *sz = header;
+    if (regexec(&exp, sz, MAX_MATCHES, matches, 0) == 0) {
+        if(matches[0].rm_so == 0){
+            regfree(&exp);
+            pointer = strtok(header, delimiter);
+            parsed_header.method = malloc(strlen(pointer) + 1);
+            strcpy(parsed_header.method, pointer);
+            pointer = strtok(NULL, delimiter);
+            parsed_header.filename = malloc(strlen(pointer) + 1);
+            strcpy(parsed_header.filename, pointer);
+            pointer = strtok(NULL, "\r");
+            parsed_header.protocol = malloc(strlen(pointer) + 1);
+            strcpy(parsed_header.protocol, pointer);
+            /*
+             * TODO: Handle other Header Fields
+             */
+        }else{
+            printf("Status line was in false line\n");
+            parsed_header.method = "BAD REQUEST";
+        }
+    } else {
+        printf("\"%s\" does not match\n", sz);
+        parsed_header.method = "BAD REQUEST";
+    }
+    printf("Parsed Header Parameters are:\nProtkoll: %s\nFilename: %s\nMethod: %s\n", parsed_header.protocol,parsed_header.filename,parsed_header.method);
+    return parsed_header;
 } /* end of parse_http_header */
