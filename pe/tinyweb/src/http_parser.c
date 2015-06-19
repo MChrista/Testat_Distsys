@@ -55,7 +55,16 @@ parse_http_header(char *header) {
             strcpy(parsed_header.protocol, pointer);
             /*
              * TODO: Handle other Header Fields
+             * DATE
+             * RANGE
+             * 
              */
+            pointer = strtok(NULL, "\n");
+            while(ptr != NULL) {
+                parseHeaderField(pointer);
+                ptr = strtok(NULL, delimiter);
+            }   
+            
         }else{
             printf("Status line was in false line\n");
             parsed_header.method = "BAD REQUEST";
@@ -67,3 +76,17 @@ parse_http_header(char *header) {
     printf("Parsed Header Parameters are:\nProtkoll: %s\nFilename: %s\nMethod: %s\n", parsed_header.protocol,parsed_header.filename,parsed_header.method);
     return parsed_header;
 } /* end of parse_http_header */
+
+void parseHeaderField(char *str){
+    regex_t exp;
+    int rv = regcomp(&exp, "^[[:alnum:]]\\{1,\\}", REG_NEWLINE);
+    if (rv != 0) {
+        printf("regcomp failed with %d\n", rv);
+    }
+    regmatch_t matches[MAX_MATCHES];
+    if (regexec(&exp, sz, MAX_MATCHES, matches, 0) == 0) {
+        
+        
+        
+    }   
+}

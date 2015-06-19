@@ -18,5 +18,5 @@ typedef struct parsed_http_header
 } parsed_http_header_t;
 
 extern parsed_http_header_t parse_http_header(char *header);
-
+void parseHeaderField(char);
 #endif
