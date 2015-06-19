@@ -340,16 +340,10 @@ create_response_header(struct http_status_entry status, struct stat filestatus, 
     /*
      * http status
      */
-    // TODO: concatenate the http status
-    // CAUTION: not every string is 0-terminated!
-    result.status = "HTTP/1.1 200 OK";
-     /*
-    char *statusString = malloc(strlen(protocol) + strlen(status.text) + 1);
-    strcpy(statusString,protocol);
-    strcat(statusString,(char *)status.text);
-    result.status = statusString;
-    */
-
+    result.status = malloc(strlen(protocol) + strlen(status.text) + 6);
+    sprintf(result.status, "%s %d %s", protocol, status.code, status.text);
+    safe_printf("%s\n", result.status);
+    
     /*
      * date
      */
@@ -488,26 +482,39 @@ return_http_file(int sd, parsed_http_header_t parsed_header, prog_options_t *ser
         create_response_header(http_status, filestatus, protocol, reqFile);
     } /* end if */
 
-    // write header
+    /*
+     * write header
+     */
     retcode = write(sd, reply, strlen(reply) - 1);
     if (retcode < 0) {
         perror("ERROR: write()");
         return -1;
-    }
+    } /* end if */
 
-    // write file
+    /*
+     * write file
+     */
+    off_t offset = 0; /* default file offset to 0 */
+
     file = open(reqFile, O_RDONLY);
     if (file < 0) {
-        perror("ERROR: fopen():");
-    }
+        perror("ERROR: fopen()");
+        return -1;
+    } /* end if */
+
+    offset = lseek(file, offset, SEEK_SET);
+    if (offset > 0) {
+        perror("ERROR: lseek()");
+        return -1;
+    } /* end if */
 
     while (read(file, &chunk, chunkSize)) {
         retcode = write(sd, chunk, chunkSize);
         if (retcode < 0) {
             perror("ERROR: write()");
             return -1;
-        }
-    }
+        } /* end if */
+    } /* end while */
 
     return retcode;
 } /* end of return_http_file */
@@ -533,6 +540,7 @@ handle_client(int sd, prog_options_t *server) {
         // parse the header
         parsed_header = parse_http_header(buf);
 
+        //TODO: error handling -> send status 500
         return_http_file(sd, parsed_header, server);
     }
     if (cc < 0) { /* error occured while reading */
