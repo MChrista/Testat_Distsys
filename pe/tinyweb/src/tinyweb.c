@@ -416,7 +416,7 @@ create_response_header(struct http_status_entry status, struct stat filestatus, 
  */
 static int
 return_http_file(int sd, parsed_http_header_t parsed_header, prog_options_t *server) {
-    char *reqFile = server->root_dir;        /* the requested file path */
+    char *reqFile;                      /* the requested file path */
     int retcode;                             /* the return code */
     struct stat filestatus;                  /* file metadata */
     struct http_status_entry http_status;    /* the http status */ 
@@ -432,6 +432,12 @@ return_http_file(int sd, parsed_http_header_t parsed_header, prog_options_t *ser
     http_status = http_status_list[8];
 
     // path to folder + filename
+    reqFile = malloc(strlen(parsed_header.filename) + strlen(server->root_dir));
+    if (reqFile == NULL) {
+        perror("ERROR malloc()");
+        return -1;
+    }
+    strcpy(reqFile, server->root_dir);
     strcat(reqFile, parsed_header.filename);
 
     retcode = stat(reqFile, &filestatus);

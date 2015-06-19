@@ -64,6 +64,6 @@ parse_http_header(char *header) {
         printf("\"%s\" does not match\n", sz);
         parsed_header.method = "BAD REQUEST";
     }
-    //printf("Parsed Header Parameters are:\nProtkoll: %s\nFilename: %s\nMethod: %s\n", parsed_header.protocol,parsed_header.filename,parsed_header.method);
+    printf("Parsed Header Parameters are:\nProtkoll: %s\nFilename: %s\nMethod: %s\n", parsed_header.protocol,parsed_header.filename,parsed_header.method);
     return parsed_header;
 } /* end of parse_http_header */
