@@ -346,7 +346,6 @@ create_response_header(http_status_entry_t httpstat, char *header, char *filepat
     timeinfo = localtime(&rawtime);
     strftime(timeString, 80, "%a, %d %b %Y %H:%M:%S", timeinfo);
     snprintf(date, 50, "%s%s\n", http_header_field_list[0], timeString);
-    safe_printf("%s\n", timeString);
     strcat(header, date);
 
     char connection [30];
@@ -425,7 +424,9 @@ return_response(int sd, parsed_http_header_t parsed_header, prog_options_t *serv
     retcode = stat(filepath, &fstat);
     if (retcode < 0) {
         //perror("ERROR: stat()");
-        filepath = "/";
+        strcpy(filepath, server->root_dir);
+        strcat(filepath, "/notFound.html");
+        
         return create_response(sd, http_status_list[6], filepath);
     }
 
