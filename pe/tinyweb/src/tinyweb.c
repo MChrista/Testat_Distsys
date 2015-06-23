@@ -346,6 +346,7 @@ create_response_header(http_status_entry_t httpstat, char *header, char *filepat
     timeinfo = localtime(&rawtime);
     strftime(timeString, 80, "%a, %d %b %Y %H:%M:%S", timeinfo);
     snprintf(date, 50, "%s%s\n", http_header_field_list[0], timeString);
+    safe_printf("%s\n", timeString);
     strcat(header, date);
 
     if (strcmp(filepath, "/") == 0) {
@@ -356,7 +357,9 @@ create_response_header(http_status_entry_t httpstat, char *header, char *filepat
 
     //last-modified
     char last_modified [50];
-    snprintf(last_modified, 50, "%s%s", http_header_field_list[2], ctime(&fstat.st_mtime));
+    timeinfo = localtime(&fstat.st_mtime);
+    strftime(timeString, 80, "%a, %d %b %Y %H:%M:%S GMT", timeinfo);
+    snprintf(last_modified, 50, "%s%s", http_header_field_list[2], timeString);
     strcat(header, last_modified);
 
     // content-length
