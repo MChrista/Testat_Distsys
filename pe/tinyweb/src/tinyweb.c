@@ -349,6 +349,10 @@ create_response_header(http_status_entry_t httpstat, char *header, char *filepat
     safe_printf("%s\n", timeString);
     strcat(header, date);
 
+    char connection [30];
+    snprintf(connection, 30, "%s%s\n",http_header_field_list[5], "keep-alive");
+    strcat(header, connection);
+
     if (strcmp(filepath, "/") == 0) {
         return retcode;
     }
