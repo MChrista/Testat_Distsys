@@ -17,8 +17,6 @@ typedef struct parsed_http_header
 	char* protocol;
 } parsed_http_header_t;
 
-char* default_file = "/index.html";
-
 extern parsed_http_header_t parse_http_header(char *header);
 void parseHeaderField(char *);
 #endif

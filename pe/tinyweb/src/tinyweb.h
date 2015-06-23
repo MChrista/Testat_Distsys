@@ -19,7 +19,7 @@
 #define err_print(s)              fprintf(stderr, "ERROR: %s, %s:%d\n", (s), __FILE__, __LINE__)
 
 #define BUFFER_SIZE                      8192
-#define DEFAULT_HTML_PAGE      "default.html"
+#define DEFAULT_HTML_PAGE      "/default.html"
 
 
 typedef struct prog_options {

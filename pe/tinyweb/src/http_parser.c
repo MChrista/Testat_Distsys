@@ -15,6 +15,7 @@
 
 #include "http_parser.h"
 #include "safe_print.h"
+#include "tinyweb.h"
 
 #define MAX_MATCHES 1
 
@@ -48,7 +49,7 @@ parse_http_header(char *header) {
             strcpy(parsed_header.method, pointer);
             pointer = strtok(NULL, delimiter);
             if(strlen(pointer) == 1){
-                parsed_header.filename = default_file;
+                parsed_header.filename = DEFAULT_HTML_PAGE;
             }else{
                 parsed_header.filename = malloc(strlen(pointer) + 1);
                 strcpy(parsed_header.filename, pointer);
