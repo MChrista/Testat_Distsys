@@ -359,7 +359,7 @@ create_response_header(http_status_entry_t httpstat, char *header, char *filepat
     char last_modified [50];
     timeinfo = localtime(&fstat.st_mtime);
     strftime(timeString, 80, "%a, %d %b %Y %H:%M:%S GMT", timeinfo);
-    snprintf(last_modified, 50, "%s%s", http_header_field_list[2], timeString);
+    snprintf(last_modified, 50, "%s%s\n", http_header_field_list[2], timeString);
     strcat(header, last_modified);
 
     // content-length
