@@ -275,9 +275,12 @@ create_server_socket(prog_options_t *server)
 } /* end of create_server_socket */
 
 static int
-write_response(int sd, char *header)
+write_response(int sd, char *header, char *filepath)
 {
     int retcode;
+    int file;               /* file descriptor of requested file */
+    int chunkSize = 256;    /* chunk size for write of message body */
+    char chunk[chunkSize];  /* chunk for write of message body */
 
     /*
      * write header
@@ -288,26 +291,104 @@ write_response(int sd, char *header)
         return -1;
     } /* end if */
 
+    if (strcmp(filepath, "/") == 0) {
+        return retcode;
+    }
+
+    /*
+     * write file
+     */
+    off_t offset = 0; /* default file offset to 0 */
+
+    file = open(filepath, O_RDONLY);
+    if (file < 0) {
+        perror("ERROR: fopen()");
+        return -1;
+    } /* end if */
+
+    offset = lseek(file, offset, SEEK_SET);
+    if (offset > 0) {
+        perror("ERROR: lseek()");
+        return -1;
+    } /* end if */
+
+    while (read(file, &chunk, chunkSize)) {
+        retcode = write(sd, chunk, chunkSize);
+        if (retcode < 0) {
+            perror("ERROR: write()");
+            return -1;
+        } /* end if */
+    } /* end while */
+
     return retcode;
 }
 
 static int
-create_response_header(http_status_entry_t httpstat, char *header)
+create_response_header(http_status_entry_t httpstat, char *header, char *filepath)
 {
-    snprintf(header, 50, "%s %hu %s", "HTTP/1.1", httpstat.code, httpstat.text);
-    return 0;
+    int retcode = EXIT_SUCCESS;
+    struct stat fstat; /* file status */
+
+    //status line
+    snprintf(header, 50, "%s %hu %s\n", "HTTP/1.1", httpstat.code, httpstat.text);
+
+    // server
+    char server[30];
+    snprintf(server, 30, "%s%s\n", http_header_field_list[1], "Tinyweb 1.0");
+    strcat(header, server);
+
+    // time
+    char timeString [80];
+    char date [50];
+    time_t rawtime;
+    struct tm * timeinfo;
+    time(&rawtime);
+    timeinfo = localtime(&rawtime);
+    strftime(timeString, 80, "%a, %d %b %Y %H:%M:%S", timeinfo);
+    snprintf(date, 50, "%s%s\n", http_header_field_list[0], timeString);
+    strcat(header, date);
+
+    if (strcmp(filepath, "/") == 0) {
+        return retcode;
+    }
+
+    retcode = stat(filepath, &fstat);
+
+    //last-modified
+    char last_modified [50];
+    snprintf(last_modified, 50, "%s%s", http_header_field_list[2], ctime(&fstat.st_mtime));
+    strcat(header, last_modified);
+
+    // content-length
+    char content_length [30];
+    snprintf(content_length, 29, "%s%lld\n", http_header_field_list[3], (long long)fstat.st_size);
+    strcat(header, content_length);
+
+    // content-type
+    char content_type [30];
+    char *contenttypestr;
+    http_content_type_t contenttype;
+    contenttype = get_http_content_type(filepath);
+    contenttypestr = get_http_content_type_str(contenttype);
+    snprintf(content_type, 30, "%s%s\n", http_header_field_list[4], contenttypestr);
+    strcat(header, content_type);
+
+    // close header
+    strcat(header, "\r\n\r\n");
+    //safe_printf(header);
+    return retcode;
 }
 
 static int
-create_response(int sd, http_status_entry_t httpstat) {
-    char header[1000];
+create_response(int sd, http_status_entry_t httpstat, char *filepath) {
+    char header[500];
 
     if(httpstat.code != 200) {
-        create_response_header(httpstat, header);
-        return write_response(sd, header);
+        create_response_header(httpstat, header, filepath);
+        return write_response(sd, header, filepath);
     } else {
-        create_response_header(httpstat, header);
-        return write_response(sd, header);
+        create_response_header(httpstat, header, filepath);
+        return write_response(sd, header, filepath);
     }
 
     return 0;
@@ -316,32 +397,32 @@ create_response(int sd, http_status_entry_t httpstat) {
 static int
 return_response(int sd, parsed_http_header_t parsed_header, prog_options_t *server)
 {
-    int retcode;                             /* return code */
-    char *filename = parsed_header.filename; /* the requested file */
-    char *filepath;                          /* path to requested file */
-    struct stat fstat;                       /* file status */
+    int retcode;            /* return code */
+    char *filepath = "/";   /* path to requested file */
+    struct stat fstat;      /* file status */
     
     if(strcmp(parsed_header.method, "BAD REQUEST") == 0) {
-        return create_response(sd, http_status_list[4]);
+        return create_response(sd, http_status_list[4], filepath);
     }
 
     // path to folder + filename
-    filepath = malloc(strlen(filename) + strlen(server->root_dir) + 1);
+    filepath = malloc(strlen(parsed_header.filename) + strlen(server->root_dir) + 1);
     if (filepath == NULL) {
         perror("ERROR: malloc()");
         return -1;
     }
 
     strcpy(filepath, server->root_dir);
-    strcat(filepath, filename);
+    strcat(filepath, parsed_header.filename);
 
     retcode = stat(filepath, &fstat);
     if (retcode < 0) {
         //perror("ERROR: stat()");
-        return create_response(sd, http_status_list[6]);
+        filepath = "/";
+        return create_response(sd, http_status_list[6], filepath);
     }
 
-    return create_response(sd, http_status_list[0]);
+    return create_response(sd, http_status_list[0], filepath);
 }
 
 /**

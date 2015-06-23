@@ -97,6 +97,6 @@ void parseHeaderField(char *str){
     char *sz="Range: bytes=1--\n";
     regmatch_t matches[MAX_MATCHES];
     if (regexec(&rangeRegex, sz, MAX_MATCHES, matches, 0) == 0) {
-        safe_printf("begin: %d end: %d",matches[0].rm_so,matches[0].rm_eo);
+        //safe_printf("begin: %d end: %d",matches[0].rm_so,matches[0].rm_eo);
     }   
 }
