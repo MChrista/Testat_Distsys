@@ -16,6 +16,7 @@
 #include "http_parser.h"
 #include "safe_print.h"
 #include "tinyweb.h"
+#include "http.h"
 
 #define MAX_MATCHES 1
 
@@ -26,8 +27,14 @@
  */
 parsed_http_header_t
 parse_http_header(char *header) {
+    
+    
+    
     parsed_http_header_t parsed_header;
-
+    
+    //Initialize State with ERROR
+    parsed_header.httpState = HTTP_STATUS_INTERNAL_SERVER_ERROR;
+    
     char delimiter[] = " ";
     char *pointer;
     //TODO: fix the parsing function
@@ -57,6 +64,13 @@ parse_http_header(char *header) {
             pointer = strtok(NULL, "\r");
             parsed_header.protocol = malloc(strlen(pointer) + 1);
             strcpy(parsed_header.protocol, pointer);
+            
+            if(strcmp(parsed_header.protocol,"HTTP/1.1") != 0){ //the only allowed Header
+                parsed_header.httpState = HTTP_STATUS_BAD_REQUEST;
+            }else{
+                //Status line is correct
+                parsed_header.httpState = HTTP_STATUS_OK;
+            }
             /*
              * TODO: Handle other Header Fields
              * DATE
@@ -67,15 +81,15 @@ parse_http_header(char *header) {
             while(pointer != NULL) {
                 parseHeaderField(pointer);
                 pointer = strtok(NULL, delimiter);
-            }   
+            }
             
         }else{
-            safe_printf("Status line was in false line\n");
-            parsed_header.method = "BAD REQUEST";
+            safe_printf("Status line was false\n");
+            parsed_header.httpState = HTTP_STATUS_BAD_REQUEST;
         }
     } else {
         safe_printf("does not match\n");
-        parsed_header.method = "BAD REQUEST";
+        parsed_header.httpState = HTTP_STATUS_BAD_REQUEST;
     }
     return parsed_header;
 } /* end of parse_http_header */

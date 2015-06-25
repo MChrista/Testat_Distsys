@@ -407,9 +407,11 @@ return_response(int sd, parsed_http_header_t parsed_header, prog_options_t *serv
     char *filepath = "/";   /* path to requested file */
     struct stat fstat;      /* file status */
     
-    if(strcmp(parsed_header.method, "BAD REQUEST") == 0) {
+    if(parsed_header.httpState == HTTP_STATUS_BAD_REQUEST) {
         return create_response(sd, http_status_list[4], filepath);
     }
+    /*parsed_header.httpState == HTTP_STATUS_BAD_REQUEST
+     */
 
     // path to folder + filename
     filepath = malloc(strlen(parsed_header.filename) + strlen(server->root_dir) + 1);
