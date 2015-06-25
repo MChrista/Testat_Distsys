@@ -410,8 +410,10 @@ return_response(int sd, parsed_http_header_t parsed_header, prog_options_t *serv
     if(parsed_header.httpState == HTTP_STATUS_BAD_REQUEST) {
         return create_response(sd, http_status_list[4], filepath);
     }
-    /*parsed_header.httpState == HTTP_STATUS_BAD_REQUEST
-     */
+    if(parsed_header.httpState == HTTP_STATUS_NOT_IMPLEMENTED) {
+        return create_response(sd, http_status_list[9], filepath);
+    }
+ 
 
     // path to folder + filename
     filepath = malloc(strlen(parsed_header.filename) + strlen(server->root_dir) + 1);

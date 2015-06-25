@@ -39,7 +39,7 @@ parse_http_header(char *header) {
     char *pointer;
     //TODO: fix the parsing function
     regex_t exp;
-    int rv = regcomp(&exp, "^\\(GET\\|HEAD\\)"
+    int rv = regcomp(&exp, "^\\(GET\\|HEAD\\|POST\\|PUT\\|DELETE\\|TRACE\\|CONNECT\\)"
     "[[:blank:]]"
     "/\\([[:alnum:]]\\|/\\)\\{0,\\}\\([[:punct:]][[:alnum:]]\\{1,\\}\\)\\{0,1\\}"
     "[[:blank:]]"
@@ -67,6 +67,8 @@ parse_http_header(char *header) {
             
             if(strcmp(parsed_header.protocol,"HTTP/1.1") != 0){ //the only allowed Header
                 parsed_header.httpState = HTTP_STATUS_BAD_REQUEST;
+            }else if(!((strcmp(parsed_header.method,"GET") == 0) || (strcmp(parsed_header.method,"HEAD") == 0))) {
+                parsed_header.httpState = HTTP_STATUS_NOT_IMPLEMENTED;
             }else{
                 //Status line is correct
                 parsed_header.httpState = HTTP_STATUS_OK;
