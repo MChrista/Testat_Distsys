@@ -389,15 +389,8 @@ static int
 create_response(int sd, http_status_entry_t httpstat, char *filepath) {
     char header[500];
 
-    if(httpstat.code != 200) {
-        create_response_header(httpstat, header, filepath);
-        return write_response(sd, header, filepath);
-    } else {
-        create_response_header(httpstat, header, filepath);
-        return write_response(sd, header, filepath);
-    }
-
-    return 0;
+    create_response_header(httpstat, header, filepath);
+    return write_response(sd, header, filepath);
 }
 
 static int
@@ -406,12 +399,16 @@ return_response(int sd, parsed_http_header_t parsed_header, prog_options_t *serv
     int retcode;            /* return code */
     char *filepath = "/";   /* path to requested file */
     struct stat fstat;      /* file status */
-    
-    if(parsed_header.httpState == HTTP_STATUS_BAD_REQUEST) {
-        return create_response(sd, http_status_list[4], filepath);
-    }
-    if(parsed_header.httpState == HTTP_STATUS_NOT_IMPLEMENTED) {
-        return create_response(sd, http_status_list[9], filepath);
+
+    switch(parsed_header.httpState) {
+        case HTTP_STATUS_INTERNAL_SERVER_ERROR:
+            return create_response(sd, http_status_list[8], filepath);
+        case HTTP_STATUS_BAD_REQUEST:
+            return create_response(sd, http_status_list[4], filepath);
+        case HTTP_STATUS_NOT_IMPLEMENTED:
+            return create_response(sd, http_status_list[9], filepath);
+        default:
+            break;
     }
  
 
@@ -452,6 +449,7 @@ handle_client(int sd, prog_options_t *server)
     char buf[BUFSIZE]; /* buffer */
     int cc; /* character count */
     parsed_http_header_t parsed_header; /* parsed header */
+    int retcode;
 
     // read from client
     while ((cc = read(sd, buf, BUFSIZE)) > 0) {
@@ -459,8 +457,12 @@ handle_client(int sd, prog_options_t *server)
         // parse the header
         parsed_header = parse_http_header(buf);
 
-        //TODO: error handling -> send status 500
-        return_response(sd, parsed_header, server);
+        retcode = return_response(sd, parsed_header, server);
+        if (retcode < 0) {
+            parsed_header.httpState = HTTP_STATUS_INTERNAL_SERVER_ERROR;
+            return_response(sd, parsed_header, server);
+            return -1;
+        }
     }
     if (cc < 0) { /* error occured while reading */
         perror("ERROR: read()");
@@ -512,6 +514,7 @@ accept_client(int sd, prog_options_t *server)
         retcode = handle_client(nsd, server);
         if (retcode < 0) {
             perror("ERROR: child handle_client()");
+            exit(EXIT_FAILURE);
         } /* end if */
         // TODO: muss man hier sd vom Kind schließen?!
         exit(EXIT_SUCCESS);

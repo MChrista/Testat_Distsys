@@ -1,3 +1,45 @@
+switch(methode) {
+    case HEAD:
+        paresde_header.emthdo = "HEAD";
+        break;
+    case GET:
+        parsed_header.metjod = "GET";
+        break;
+    default:
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 sighandler(
 	if(kind = unnatürlicher TOD) {
 		// TODO: schicke client vom Kind 500!
@@ -38,7 +80,7 @@ create_response() {
 	} else if (method == HEAD) {
 		return write_response();
 	} else {
-		return write_respond();
+		return write_respond(501);
 	}
 }
 
