@@ -1,14 +1,53 @@
-switch(methode) {
-    case HEAD:
-        paresde_header.emthdo = "HEAD";
-        break;
-    case GET:
-        parsed_header.metjod = "GET";
-        break;
-    default:
+write_response() {
 
 }
 
+create_response() {
+    if(method == GET) {
+        return write_response();
+    } else if (method == HEAD) {
+        return write_response();
+    } else {
+        return write_respond(501);
+    }
+}
+
+return_response() {
+    switch(parsed_header.httpState) {
+        case HTTP_STATUS_INTERNAL_SERVER_ERROR:
+            return create_response();
+        case HTTP_STATUS_BAD_REQUEST:
+            return create_response();
+        case HTTP_STATUS_NOT_IMPLEMENTED:
+            return create_response();
+        default:
+            break;
+    }
+}
+
+int handle_client() {
+    return_response();
+}
+
+int accept_client() {
+    fork();
+    if (Kind) {
+        handle_client();
+        if (Fehler) {
+            return_response(500);
+        }
+    } else if (Vater) {
+
+    } else {
+        Fehler
+    }
+}
+
+int main () {
+    while {
+        accept_clients();
+    }
+}
 
 
 

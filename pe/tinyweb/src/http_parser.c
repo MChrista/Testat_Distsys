@@ -39,7 +39,7 @@ parse_http_header(char *header) {
     char *pointer;
     //TODO: fix the parsing function
     regex_t exp;
-    int rv = regcomp(&exp, "^\\(GET\\|HEAD\\|POST\\|PUT\\|DELETE\\|TRACE\\|CONNECT\\)"
+    int rv = regcomp(&exp, "^\\(GET\\|HEAD\\|POST\\|PUT\\|DELETE\\|TRACE\\|CONNECT\\|OPTIONS\\|DUMMY\\)"
     "[[:blank:]]"
     "/\\([[:alnum:]]\\|/\\)\\{0,\\}\\([[:punct:]][[:alnum:]]\\{1,\\}\\)\\{0,1\\}"
     "[[:blank:]]"
