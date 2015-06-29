@@ -275,7 +275,7 @@ create_server_socket(prog_options_t *server)
 } /* end of create_server_socket */
 
 static int
-write_response(int sd, char *header, char *filepath)
+write_response(int sd, char *header, char *method, char *filepath)
 {
     int retcode;
     int file;               /* file descriptor of requested file */
@@ -291,7 +291,7 @@ write_response(int sd, char *header, char *filepath)
         return -1;
     } /* end if */
 
-    if (strcmp(filepath, "/") == 0) {
+    if (strcmp(method, "HEAD") == 0) {
         return retcode;
     }
 
@@ -324,7 +324,7 @@ write_response(int sd, char *header, char *filepath)
 }
 
 static int
-create_response_header(http_status_entry_t httpstat, char *header, char *filepath)
+create_response_header(http_status_entry_t httpstat, char *header, char *method, char *filepath)
 {
     int retcode = EXIT_SUCCESS;
     struct stat fstat; /* file status */
@@ -386,11 +386,17 @@ create_response_header(http_status_entry_t httpstat, char *header, char *filepat
 }
 
 static int
-create_response(int sd, http_status_entry_t httpstat, char *filepath) {
+create_response(int sd, http_status_entry_t httpstat, char *method, char *filepath) 
+{
     char header[500];
 
-    create_response_header(httpstat, header, filepath);
-    return write_response(sd, header, filepath);
+    if (strcmp(method, "GET") == 0) { /* GET method */
+        create_response_header(httpstat, header, method, filepath);
+        return write_response(sd, header, method, filepath);
+    } else { /* HEAD method */
+        create_response_header(httpstat, header, method, filepath);
+        return write_response(sd, header, method, filepath);
+    }
 }
 
 static int
@@ -402,11 +408,11 @@ return_response(int sd, parsed_http_header_t parsed_header, prog_options_t *serv
 
     switch(parsed_header.httpState) {
         case HTTP_STATUS_INTERNAL_SERVER_ERROR:
-            return create_response(sd, http_status_list[8], filepath);
+            return create_response(sd, http_status_list[8], parsed_header.method, filepath);
         case HTTP_STATUS_BAD_REQUEST:
-            return create_response(sd, http_status_list[4], filepath);
+            return create_response(sd, http_status_list[4], parsed_header.method, filepath);
         case HTTP_STATUS_NOT_IMPLEMENTED:
-            return create_response(sd, http_status_list[9], filepath);
+            return create_response(sd, http_status_list[9], parsed_header.method, filepath);
         default:
             break;
     }
@@ -428,10 +434,10 @@ return_response(int sd, parsed_http_header_t parsed_header, prog_options_t *serv
         strcpy(filepath, server->root_dir);
         strcat(filepath, "/notFound.html");
         
-        return create_response(sd, http_status_list[6], filepath);
+        return create_response(sd, http_status_list[6], parsed_header.method, filepath);
     }
 
-    return create_response(sd, http_status_list[0], filepath);
+    return create_response(sd, http_status_list[0], parsed_header.method, filepath);
 }
 
 /**
