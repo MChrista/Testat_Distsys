@@ -274,6 +274,14 @@ create_server_socket(prog_options_t *server)
     return sfd;
 } /* end of create_server_socket */
 
+/**
+ * write the response to client socket
+ * @param   the client socket descriptor
+ * @param   the response header
+ * @param   the request method
+ * @param   the filepath to requested file
+ * @return  on error -1 is returned
+ */
 static int
 write_response(int sd, char *header, char *method, char *filepath)
 {
@@ -331,8 +339,16 @@ write_response(int sd, char *header, char *method, char *filepath)
     }
 
     return retcode;
-}
+} /* end of write_response */
 
+/**
+ * creates the response header
+ * @param   the http status
+ * @param   the header pointer
+ * @param   the request method
+ * @param   the path to requested file
+ * @return  on error -1 is returned
+ */
 static int
 create_response_header(http_status_entry_t httpstat, char *header, char *method, char *filepath)
 {
@@ -390,8 +406,16 @@ create_response_header(http_status_entry_t httpstat, char *header, char *method,
     strcat(header, "\r\n");
     //safe_printf(header);
     return retcode;
-}
+} /* end of create_response_header */
 
+/**
+ * differentiates between request methods
+ * @param   the socket descriptor
+ * @param   the http status
+ * @param   the request method
+ * @param   the path to requested file
+ * @return  on error -1 is returned
+ */
 static int
 create_response(int sd, http_status_entry_t httpstat, char *method, char *filepath) 
 {
@@ -404,8 +428,15 @@ create_response(int sd, http_status_entry_t httpstat, char *method, char *filepa
         create_response_header(httpstat, header, method, filepath);
         return write_response(sd, header, method, filepath);
     }
-}
+} /* end of create_response */
 
+/**
+ * differentiates between response statuses
+ * @param   the socket descriptor
+ * @param   the parsed request header
+ * @param   the program options
+ * @return  on error -1 is returned
+ */
 static int
 return_response(int sd, parsed_http_header_t parsed_header, prog_options_t *server)
 {
@@ -451,13 +482,13 @@ return_response(int sd, parsed_http_header_t parsed_header, prog_options_t *serv
     }
 
     return create_response(sd, http_status_list[0], parsed_header.method, filepath);
-}
+} /* end of return_response */
 
 /**
  * Handle clients.
  * @param   the socket descriptor to read on
  * @param   the program options
- * @return  >0 in case of error
+ * @return  on error -1 is returned
  */
 static int
 handle_client(int sd, prog_options_t *server) 
