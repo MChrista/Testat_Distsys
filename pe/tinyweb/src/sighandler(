@@ -57,7 +57,26 @@ int main () {
 
 
 
+    /*
+     * write file
+     */
+    file = open(filepath, O_RDONLY);
+    if (file < 0) {
+        perror("ERROR: fopen()");
+        return -1;
+    } /* end if */
 
+    struct stat fstat;      /* file status */
+    retcode = stat(filepath, &fstat);
+    char *buffer = malloc(fstat.st_size);
+    int cc;
+
+    while ((cc = read(file, buffer, fstat.st_size)) > 0) {
+
+    }
+    retcode = write(sd, buffer, fstat.st_size);
+
+    return retcode;
 
 
 

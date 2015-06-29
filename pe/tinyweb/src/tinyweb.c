@@ -280,7 +280,7 @@ write_response(int sd, char *header, char *method, char *filepath)
     int retcode;
     int file;               /* file descriptor of requested file */
     int chunkSize = 256;    /* chunk size for write of message body */
-    char chunk[chunkSize];  /* chunk for write of message body */
+    //char chunk[chunkSize];  /* chunk for write of message body */
 
     /*
      * write header
@@ -298,27 +298,35 @@ write_response(int sd, char *header, char *method, char *filepath)
     /*
      * write file
      */
-    off_t offset = 0; /* default file offset to 0 */
-
     file = open(filepath, O_RDONLY);
     if (file < 0) {
         perror("ERROR: fopen()");
         return -1;
     } /* end if */
 
-    offset = lseek(file, offset, SEEK_SET);
-    if (offset > 0) {
-        perror("ERROR: lseek()");
-        return -1;
-    } /* end if */
+    unsigned char chunk[chunkSize];
+    struct stat fstat;      /* file status */
+    retcode = stat(filepath, &fstat);
+    size_t bytesWritten = 0;
+    size_t bytesToWrite = fstat.st_size;
 
-    while (read(file, &chunk, chunkSize)) {
-        retcode = write(sd, chunk, chunkSize);
-        if (retcode < 0) {
-            perror("ERROR: write()");
+    while (bytesWritten != bytesToWrite) {
+        size_t writtenThisTime;
+        size_t readThisTime;
+
+        readThisTime = read(file, chunk, chunkSize);
+
+        if(readThisTime < 0) {
             return -1;
-        } /* end if */
-    } /* end while */
+        }
+
+        writtenThisTime = write(sd, chunk, readThisTime);
+        if (writtenThisTime == -1) {
+            return -1;
+        }
+
+        bytesWritten += writtenThisTime;
+    }
 
     return retcode;
 }
@@ -330,11 +338,11 @@ create_response_header(http_status_entry_t httpstat, char *header, char *method,
     struct stat fstat; /* file status */
 
     //status line
-    snprintf(header, 50, "%s %hu %s\n", "HTTP/1.1", httpstat.code, httpstat.text);
+    snprintf(header, 50, "%s %hu %s\r\n", "HTTP/1.1", httpstat.code, httpstat.text);
 
     // server
     char server[30];
-    snprintf(server, 30, "%s%s\n", http_header_field_list[1], "Tinyweb 1.0");
+    snprintf(server, 30, "%s%s\r\n", http_header_field_list[1], "Tinyweb 1.0");
     strcat(header, server);
 
     // time
@@ -345,11 +353,12 @@ create_response_header(http_status_entry_t httpstat, char *header, char *method,
     time(&rawtime);
     timeinfo = localtime(&rawtime);
     strftime(timeString, 80, "%a, %d %b %Y %H:%M:%S", timeinfo);
-    snprintf(date, 50, "%s%s\n", http_header_field_list[0], timeString);
+    snprintf(date, 50, "%s%s\r\n", http_header_field_list[0], timeString);
     strcat(header, date);
 
+    // connection
     char connection [30];
-    snprintf(connection, 30, "%s%s\n",http_header_field_list[5], "keep-alive");
+    snprintf(connection, 30, "%s%s\r\n",http_header_field_list[5], "keep-alive");
     strcat(header, connection);
 
     if (strcmp(filepath, "/") == 0) {
@@ -362,12 +371,12 @@ create_response_header(http_status_entry_t httpstat, char *header, char *method,
     char last_modified [50];
     timeinfo = localtime(&fstat.st_mtime);
     strftime(timeString, 80, "%a, %d %b %Y %H:%M:%S GMT", timeinfo);
-    snprintf(last_modified, 50, "%s%s\n", http_header_field_list[2], timeString);
+    snprintf(last_modified, 50, "%s%s\r\n", http_header_field_list[2], timeString);
     strcat(header, last_modified);
 
     // content-length
     char content_length [30];
-    snprintf(content_length, 29, "%s%lld\n", http_header_field_list[3], (long long)fstat.st_size);
+    snprintf(content_length, 29, "%s%lld\r\n", http_header_field_list[3], (long long)fstat.st_size);
     strcat(header, content_length);
 
     // content-type
@@ -376,11 +385,11 @@ create_response_header(http_status_entry_t httpstat, char *header, char *method,
     http_content_type_t contenttype;
     contenttype = get_http_content_type(filepath);
     contenttypestr = get_http_content_type_str(contenttype);
-    snprintf(content_type, 30, "%s%s\n", http_header_field_list[4], contenttypestr);
+    snprintf(content_type, 30, "%s%s\r\n", http_header_field_list[4], contenttypestr);
     strcat(header, content_type);
 
     // close header
-    strcat(header, "\r\n\r\n");
+    strcat(header, "\r\n");
     //safe_printf(header);
     return retcode;
 }
