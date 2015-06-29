@@ -295,12 +295,14 @@ write_response(int sd, char *header, char *method, char *filepath)
         return retcode;
     }
 
+    safe_printf("%s\n", filepath);
+
     /*
      * write file
      */
     file = open(filepath, O_RDONLY);
     if (file < 0) {
-        perror("ERROR: fopen()");
+        perror("ERROR: open()");
         return -1;
     } /* end if */
 
@@ -342,7 +344,7 @@ create_response_header(http_status_entry_t httpstat, char *header, char *method,
 
     // server
     char server[30];
-    snprintf(server, 30, "%s%s\r\n", http_header_field_list[1], "Tinyweb 1.0");
+    snprintf(server, 30, "%s%s\r\n", http_header_field_list[1], "Tinyweb 1.1");
     strcat(header, server);
 
     // time
@@ -360,10 +362,6 @@ create_response_header(http_status_entry_t httpstat, char *header, char *method,
     char connection [30];
     snprintf(connection, 30, "%s%s\r\n",http_header_field_list[5], "keep-alive");
     strcat(header, connection);
-
-    if (strcmp(filepath, "/") == 0) {
-        return retcode;
-    }
 
     retcode = stat(filepath, &fstat);
 
@@ -411,21 +409,9 @@ create_response(int sd, http_status_entry_t httpstat, char *method, char *filepa
 static int
 return_response(int sd, parsed_http_header_t parsed_header, prog_options_t *server)
 {
-    int retcode;            /* return code */
-    char *filepath = "/";   /* path to requested file */
-    struct stat fstat;      /* file status */
-
-    switch(parsed_header.httpState) {
-        case HTTP_STATUS_INTERNAL_SERVER_ERROR:
-            return create_response(sd, http_status_list[8], parsed_header.method, filepath);
-        case HTTP_STATUS_BAD_REQUEST:
-            return create_response(sd, http_status_list[4], parsed_header.method, filepath);
-        case HTTP_STATUS_NOT_IMPLEMENTED:
-            return create_response(sd, http_status_list[9], parsed_header.method, filepath);
-        default:
-            break;
-    }
- 
+    int retcode;        /* return code */
+    char *filepath;     /* path to requested file */
+    struct stat fstat;  /* file status */
 
     // path to folder + filename
     filepath = malloc(strlen(parsed_header.filename) + strlen(server->root_dir) + 1);
@@ -434,16 +420,32 @@ return_response(int sd, parsed_http_header_t parsed_header, prog_options_t *serv
         return -1;
     }
 
+    switch(parsed_header.httpState) {
+        case HTTP_STATUS_INTERNAL_SERVER_ERROR:
+            strcpy(filepath, server->root_dir);
+            strcat(filepath, "/status/500.html");
+            return create_response(sd, http_status_list[8], parsed_header.method, filepath);
+        case HTTP_STATUS_BAD_REQUEST:
+            strcpy(filepath, server->root_dir);
+            strcat(filepath, "/status/400.html");
+            return create_response(sd, http_status_list[4], parsed_header.method, filepath);
+        case HTTP_STATUS_NOT_IMPLEMENTED:
+            return create_response(sd, http_status_list[9], parsed_header.method, filepath);
+        default:
+            break;
+    }
+
     strcpy(filepath, server->root_dir);
     strcat(filepath, parsed_header.filename);
-
     retcode = stat(filepath, &fstat);
-    if (retcode < 0) {
-        //perror("ERROR: stat()");
+    if ((retcode < 0) && ((errno == ENOENT) || (errno == ENOTDIR))) {
         strcpy(filepath, server->root_dir);
-        strcat(filepath, "/notFound.html");
-        
+        strcat(filepath, "/status/404.html");
         return create_response(sd, http_status_list[6], parsed_header.method, filepath);
+    } else if ((retcode < 0) && (errno == EACCES)) {
+        // no access to file
+    } else if (retcode < 0) {
+        perror("ERROR: stat()");
     }
 
     return create_response(sd, http_status_list[0], parsed_header.method, filepath);
