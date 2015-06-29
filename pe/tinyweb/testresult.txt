@@ -1,0 +1,34 @@
+t/00date.t ...... ok
+t/00server.t .... ok
+t/00status.t .... ok
+t/01methods.t ... ok
+t/02basic.t ..... 
+Dubious, test returned 2 (wstat 512, 0x200)
+Failed 2/12 subtests 
+t/02mime.t ...... 
+Dubious, test returned 2 (wstat 512, 0x200)
+Failed 2/11 subtests 
+t/02zero.t ...... ok
+t/03moved.t ..... 
+Dubious, test returned 4 (wstat 1024, 0x400)
+Failed 4/4 subtests 
+t/04modsince.t .. 
+Dubious, test returned 3 (wstat 768, 0x300)
+Failed 3/5 subtests 
+
+Test Summary Report
+-------------------
+t/02basic.t   (Wstat: 512 Tests: 12 Failed: 2)
+  Failed tests:  5-6
+  Non-zero exit status: 2
+t/02mime.t    (Wstat: 512 Tests: 11 Failed: 2)
+  Failed tests:  5-6
+  Non-zero exit status: 2
+t/03moved.t   (Wstat: 1024 Tests: 4 Failed: 4)
+  Failed tests:  1-4
+  Non-zero exit status: 4
+t/04modsince.t (Wstat: 768 Tests: 5 Failed: 3)
+  Failed tests:  1-2, 4
+  Non-zero exit status: 3
+Files=9, Tests=68, 123 wallclock secs ( 0.12 usr  0.02 sys +  2.32 cusr  0.16 csys =  2.62 CPU)
+Result: FAIL

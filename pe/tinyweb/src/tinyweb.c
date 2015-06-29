@@ -481,6 +481,8 @@ return_response(int sd, parsed_http_header_t parsed_header, prog_options_t *serv
         perror("ERROR: stat()");
     }
 
+    // TODO check for 301 und 304
+
     return create_response(sd, http_status_list[0], parsed_header.method, filepath);
 } /* end of return_response */
 
