@@ -295,7 +295,7 @@ write_response(int sd, char *header, char *method, char *filepath)
         return retcode;
     }
 
-    safe_printf("%s\n", filepath);
+    //safe_printf("%s\n", filepath);
 
     /*
      * write file
@@ -430,6 +430,8 @@ return_response(int sd, parsed_http_header_t parsed_header, prog_options_t *serv
             strcat(filepath, "/status/400.html");
             return create_response(sd, http_status_list[4], parsed_header.method, filepath);
         case HTTP_STATUS_NOT_IMPLEMENTED:
+            strcpy(filepath, server->root_dir);
+            strcat(filepath, "/status/501.html");
             return create_response(sd, http_status_list[9], parsed_header.method, filepath);
         default:
             break;
