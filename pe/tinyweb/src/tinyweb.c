@@ -381,26 +381,34 @@ create_response_header(http_status_entry_t httpstat, char *header, char *method,
 
     retcode = stat(filepath, &fstat);
 
-    //last-modified
-    char last_modified [50];
-    timeinfo = localtime(&fstat.st_mtime);
-    strftime(timeString, 80, "%a, %d %b %Y %H:%M:%S GMT", timeinfo);
-    snprintf(last_modified, 50, "%s%s\r\n", http_header_field_list[2], timeString);
-    strcat(header, last_modified);
+    if(S_ISDIR(fstat.st_mode)) {
+        printf("%s\n", "directory found!");
+        char moved_permanently [50];
+        strcat(filepath, "/");
+        snprintf(moved_permanently, 50, "%s%s\r\n", http_header_field_list[7], filepath);
+        strcat(header, moved_permanently);
+    } else {
+        //last-modified
+        char last_modified [50];
+        timeinfo = localtime(&fstat.st_mtime);
+        strftime(timeString, 80, "%a, %d %b %Y %H:%M:%S GMT", timeinfo);
+        snprintf(last_modified, 50, "%s%s\r\n", http_header_field_list[2], timeString);
+        strcat(header, last_modified);
 
-    // content-length
-    char content_length [30];
-    snprintf(content_length, 29, "%s%lld\r\n", http_header_field_list[3], (long long)fstat.st_size);
-    strcat(header, content_length);
+        // content-length
+        char content_length [30];
+        snprintf(content_length, 29, "%s%lld\r\n", http_header_field_list[3], (long long)fstat.st_size);
+        strcat(header, content_length);
 
-    // content-type
-    char content_type [30];
-    char *contenttypestr;
-    http_content_type_t contenttype;
-    contenttype = get_http_content_type(filepath);
-    contenttypestr = get_http_content_type_str(contenttype);
-    snprintf(content_type, 30, "%s%s\r\n", http_header_field_list[4], contenttypestr);
-    strcat(header, content_type);
+        // content-type
+        char content_type [30];
+        char *contenttypestr;
+        http_content_type_t contenttype;
+        contenttype = get_http_content_type(filepath);
+        contenttypestr = get_http_content_type_str(contenttype);
+        snprintf(content_type, 30, "%s%s\r\n", http_header_field_list[4], contenttypestr);
+        strcat(header, content_type);
+    }
 
     // close header
     strcat(header, "\r\n");
@@ -420,6 +428,12 @@ static int
 create_response(int sd, http_status_entry_t httpstat, char *method, char *filepath) 
 {
     char header[500];
+
+    if (httpstat.code == http_status_list[2].code) {
+        create_response_header(httpstat, header, method, filepath);
+        strcat(filepath, "/status/301.html");
+        return write_response(sd, header, method, filepath);
+    }
 
     if (strcmp(method, "GET") == 0) { /* GET method */
         create_response_header(httpstat, header, method, filepath);
@@ -479,6 +493,10 @@ return_response(int sd, parsed_http_header_t parsed_header, prog_options_t *serv
         // no access to file
     } else if (retcode < 0) {
         perror("ERROR: stat()");
+    }
+
+    if(S_ISDIR(fstat.st_mode)) {
+        return create_response(sd, http_status_list[2], parsed_header.method, filepath);
     }
 
     // TODO check for 301 und 304
