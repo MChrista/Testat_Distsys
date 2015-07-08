@@ -511,7 +511,7 @@ return_response(int sd, parsed_http_header_t parsed_header, prog_options_t *serv
  * @return  on error -1 is returned
  */
 static int
-handle_client(int sd, prog_options_t *server) 
+handle_client(int sd, prog_options_t *server, struct sockaddr_in client) 
 {
     // maybe define a HTTP_MAX_HEADER_SIZE to prevent DOS attacks
     // run till /n/r/n/r
@@ -526,6 +526,24 @@ handle_client(int sd, prog_options_t *server)
         //TODO: Test maximal bufsize
         // parse the header
         parsed_header = parse_http_header(buf);
+
+        /*
+         * write log
+         */
+        // time
+        char timeString [80];
+        char date [50];
+        time_t rawtime;
+        struct tm * timeinfo;
+        time(&rawtime);
+        timeinfo = localtime(&rawtime);
+        strftime(timeString, 80, "%a, %d %b %Y %H:%M:%S", timeinfo);
+        snprintf(date, 50, "%s +0200", timeString);
+
+        // IP Address
+        char str[INET_ADDRSTRLEN];
+        inet_ntop(AF_INET, &(client.sin_addr), str, INET_ADDRSTRLEN);
+        safe_printf("%s - - [%s] \"%s %s %s\" %d\n", str, date, parsed_header.method, parsed_header.filename, parsed_header.protocol, http_status_list[parsed_header.httpState].code);
 
         retcode = return_response(sd, parsed_header, server);
         if (retcode < 0) {
@@ -581,7 +599,7 @@ accept_client(int sd, prog_options_t *server)
         if (retcode < 0) {
             perror("ERROR: child close()");
         } /* end if */
-        retcode = handle_client(nsd, server);
+        retcode = handle_client(nsd, server, client);
         if (retcode < 0) {
             perror("ERROR: child handle_client()");
             exit(EXIT_FAILURE);
