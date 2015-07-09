@@ -12,7 +12,11 @@
 #include <stdlib.h>
 #include <sys/types.h>
 #include <regex.h>
+#define __USE_XOPEN
+//#define _GNU_SOURCE
+//#define _XOPEN_SOURCE /* Pour GlibC2 */
 #include <time.h>
+
 
 #include "http_parser.h"
 #include "safe_print.h"
@@ -20,9 +24,8 @@
 #include "http.h"
 
 #define MAX_MATCHES 1
-#define __USE_XOPEN
-#define _GNU_SOURCE
-#define _XOPEN_SOURCE
+
+
 
 /**
  * parse the http header
