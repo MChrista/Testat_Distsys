@@ -9,11 +9,11 @@
 
 #ifndef _HTTP_PARSER_H
 #define _HTTP_PARSER_H
-typedef struct parsed_http_header
-{
-	char* method;
-	char* filename;
-	char* protocol;
+
+typedef struct parsed_http_header {
+    char* method;
+    char* filename;
+    char* protocol;
     int httpState;
     time_t modsince;
 } parsed_http_header_t;

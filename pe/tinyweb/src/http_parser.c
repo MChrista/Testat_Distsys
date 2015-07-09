@@ -25,8 +25,6 @@
 
 #define MAX_MATCHES 1
 
-
-
 /**
  * parse the http header
  * @param 	the header as char array
@@ -95,23 +93,19 @@ parse_http_header(char *header) {
             }
             regmatch_t matches[MAX_MATCHES];
             if (regexec(&lastModRegex, lsz, MAX_MATCHES, matches, 0) == 0) {
-                safe_printf("begin: %d end: %d", matches[0].rm_so, matches[0].rm_eo);
-                const char *time_details = "Sat, 29 Oct 1994 19:43:31";
-                struct tm tm;
-                strptime(time_details, "%a, %d %b %Y %H:%M:%S", &tm);
-                time_t t = mktime(&tm);
-                struct tm * timeinfo;
-                timeinfo = localtime(&t);
-                char timeString [80];
-                strftime(timeString, 80, "%a, %d %b %Y %H:%M:%S", timeinfo);
-                safe_printf(timeString);
+                //safe_printf("begin: %d end: %d", matches[0].rm_so, matches[0].rm_eo);
 
             }
 
             pointer = strtok(NULL, "\n");
             while (pointer != NULL) {
-                parseHeaderField(pointer);
-                pointer = strtok(NULL, delimiter);
+                struct tm tm;
+                char *ret = strptime(pointer, "If-Modified-Since: %a, %d %b %Y %H:%M:%S", &tm);
+                if (ret != NULL) {
+                    time_t t = mktime(&tm);
+                    parsed_header.modsince = t;
+                }
+                pointer = strtok(NULL, "\n");
             }
 
         } else {
@@ -141,7 +135,7 @@ void parseHeaderField(char *str) {
     }
     regmatch_t matches[MAX_MATCHES];
     if (regexec(&lastModRegex, lsz, MAX_MATCHES, matches, 0) == 0) {
-        safe_printf("begin: %d end: %d", matches[0].rm_so, matches[0].rm_eo);
+        //safe_printf("begin: %d end: %d", matches[0].rm_so, matches[0].rm_eo);
     }
 
 
