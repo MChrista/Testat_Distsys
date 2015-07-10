@@ -37,8 +37,9 @@ parse_http_header(char *header) {
 
     parsed_http_header_t parsed_header;
 
-    //Initialize State with ERROR
+    //Initialize State with ERROR and modsince with 0
     parsed_header.httpState = HTTP_STATUS_INTERNAL_SERVER_ERROR;
+    parsed_header.modsince = 0;
 
     char delimiter[] = " ";
     char *pointer;
