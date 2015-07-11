@@ -16,6 +16,8 @@ typedef struct parsed_http_header {
     char* protocol;
     int httpState;
     time_t modsince;
+    int byteStart;
+    int byteEnd;
 } parsed_http_header_t;
 
 extern parsed_http_header_t parse_http_header(char *header);

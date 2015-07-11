@@ -16,6 +16,8 @@
 //#define _GNU_SOURCE
 //#define _XOPEN_SOURCE /* Pour GlibC2 */
 #include <time.h>
+#include <ctype.h>
+#include <math.h>
 
 
 #include "http_parser.h"
@@ -84,21 +86,26 @@ parse_http_header(char *header) {
              * RANGE
              * 
              */
+
             regex_t rangeRegex;
             int rv = regcomp(&rangeRegex, "^Range"
                     "[[:blank:]]\\{0,\\}"
                     ":[[:blank:]]\\{0,\\}"
-                    "bytes=[[:digit:]]\\{1,\\}-\\?", REG_ICASE);
+                    "bytes="
+                    "\\("
+                    "\\([[:digit:]]\\{1,\\}-[[:digit:]]\\{0,\\}\\)"
+                    "\\|"
+                    "\\(-[[:digit:]]\\{1,\\}\\)"
+                    "\\)", REG_ICASE);
 
             if (rv != 0) {
                 safe_printf("regcomp failed with %d\n", rv);
             }
-            //char *sz = "Range: bytes=1--\n";
+            //char *rangeTest = "Range: bytes=700-500";
 
 
             pointer = strtok(NULL, "\n");
             while (pointer != NULL) {
-                safe_printf("%s\n", pointer);
                 struct tm tm;
                 char *ret = strptime(pointer, "If-Modified-Since: %a, %d %b %Y %H:%M:%S", &tm);
                 if (ret != NULL) {
@@ -107,8 +114,51 @@ parse_http_header(char *header) {
                 }
 
                 if (regexec(&rangeRegex, pointer, MAX_MATCHES, matches, 0) == 0) {
-                    safe_printf("begin: %d end: %d\n",matches[0].rm_so,matches[0].rm_eo);
-                }
+                    safe_printf("begin: %d end: %d\n", matches[0].rm_so, matches[0].rm_eo);
+                    int matchEnd = matches[0].rm_eo;
+                    int i = 0;
+                    int pos = 1;
+                    int startValue = -1;
+                    int endValue = -1;
+                    int c = (int) (pointer[matchEnd - i - 1] - '0');
+                    //last char is either a "-" or a digit
+                    while (c >= 0 && c <= 9) {
+                        int temp = c;
+                        endValue = temp * pos;
+                        i++;
+                        pos = pos * 10;
+                        c = (int) (pointer[matchEnd - i - 1] - '0');
+                    }
+                    //Increase Index, because of -
+                    i++;
+                    pos = 1;
+                    c = (int) (pointer[matchEnd - i - 1] - '0');
+                    while (c >= 0 && c <= 9) {
+                        int temp = c;
+                        startValue = temp * pos;
+                        i++;
+                        pos = pos * 10;
+                        c = (int) (pointer[matchEnd - i - 1] - '0');
+                    }
+                    //safe_printf("Startvalue %d", startValue);
+                    //safe_printf("Endvalue %d", endValue);
+
+                    parsed_header.httpState = HTTP_STATUS_RANGE_NOT_SATISFIABLE;
+                    parsed_header.byteStart = startValue;
+                    parsed_header.byteEnd = endValue;
+                    //Check Status
+                    if (startValue == -1 && endValue > 0) {
+                        parsed_header.httpState = HTTP_STATUS_PARTIAL_CONTENT;
+                        safe_printf("Partial Content\n");
+                    } else if (startValue > 0 && endValue == -1) {
+                        parsed_header.httpState = HTTP_STATUS_PARTIAL_CONTENT;
+                        safe_printf("Partial Content\n");
+                    } else if (startValue > 0 && endValue > 0 && startValue < endValue) {
+                        parsed_header.httpState = HTTP_STATUS_PARTIAL_CONTENT;
+                        safe_printf("Partial Content\n");
+                    }
+                    
+                } //end of parsing range
 
                 pointer = strtok(NULL, "\n");
             }
@@ -130,7 +180,7 @@ void parseHeaderField(char *str) {
      * If-Modified-Since - sonst 304 ohne ressource
      * 
      */
-    
+
     regex_t lastModRegex;
     char *lastModStr = "^If-Modified-Since:[[:blank:]]";
     char *lsz = "If-Modified-Since: Sat, 29 Oct 1994 19:43:31 GMT\n";
