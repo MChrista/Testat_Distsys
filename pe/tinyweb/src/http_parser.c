@@ -26,6 +26,8 @@
 #include "http.h"
 
 #define MAX_MATCHES 1
+#define TRUE 1;
+#define FALSE 0;
 
 /**
  * parse the http header
@@ -42,6 +44,7 @@ parse_http_header(char *header) {
     //Initialize State with ERROR and modsince with 0
     parsed_header.httpState = HTTP_STATUS_INTERNAL_SERVER_ERROR;
     parsed_header.modsince = 0;
+    parsed_header.isCGI = FALSE;
 
     char delimiter[] = " ";
     char *pointer;
@@ -49,7 +52,7 @@ parse_http_header(char *header) {
     regex_t exp;
     int rv = regcomp(&exp, "^\\(GET\\|HEAD\\|POST\\|PUT\\|DELETE\\|TRACE\\|CONNECT\\|OPTIONS\\|DUMMY\\)"
             "[[:blank:]]"
-            "/\\([[:alnum:]]\\|/\\)\\{0,\\}\\([[:punct:]][[:alnum:]]\\{1,\\}\\)\\{0,1\\}"
+            "/\\([[:alnum:]]\\|/\\|-\\)\\{0,\\}\\([[:punct:]][[:alnum:]]\\{1,\\}\\)\\{0,1\\}"
             "[[:blank:]]"
             "HTTP/[[:digit:]][[:punct:]][[:digit:]]\r$", REG_NEWLINE);
     if (rv != 0) {
@@ -68,6 +71,14 @@ parse_http_header(char *header) {
             } else {
                 parsed_header.filename = malloc(strlen(pointer) + 1);
                 strcpy(parsed_header.filename, pointer);
+                regex_t cgiReg;
+                int rv = regcomp(&cgiReg, "^/cgi-bin", REG_ICASE);
+                if (rv != 0) {
+                    safe_printf("regcomp failed with %d\n", rv);
+                }
+                if (regexec(&cgiReg, parsed_header.filename, MAX_MATCHES, matches, 0) == 0){
+                    parsed_header.isCGI = TRUE;
+                }
             }
             pointer = strtok(NULL, "\r");
             parsed_header.protocol = malloc(strlen(pointer) + 1);
@@ -157,7 +168,7 @@ parse_http_header(char *header) {
                         parsed_header.httpState = HTTP_STATUS_PARTIAL_CONTENT;
                         safe_printf("Partial Content\n");
                     }
-                    
+
                 } //end of parsing range
 
                 pointer = strtok(NULL, "\n");
