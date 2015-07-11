@@ -1,12 +1,3 @@
-/*===================================================================
- * DHBW Ravensburg - Campus Friedrichshafen
- *
- * Vorlesung Verteilte Systeme
- *
- * Author:  Ralf Reutemann
- *
- *===================================================================*/
-
 #include <stdio.h>
 #include <time.h>
 #include <sys/types.h>
@@ -40,45 +31,13 @@
 #include "http_parser.h"
 #include "content.h"
 #include "http.h"
+#include "socket_io.h"
 
 // Must be true for the server accepting clients,
 // otherwise, the server will terminate
 static volatile sig_atomic_t server_running = false;
 
 #define IS_ROOT_DIR(mode)   (S_ISDIR(mode) && ((S_IROTH || S_IXOTH) & (mode)))
-
-static void
-sig_handler(int sig) 
-{
-    int status;
-    switch (sig) {
-        case SIGINT:
-            // use our own thread-safe implemention of printf
-            safe_printf("\n[%d] Server terminated due to keyboard interrupt\n", getpid());
-            server_running = false;
-            break;
-        case SIGCHLD:
-            while (waitpid(-1, &status, WNOHANG) > 0) {
-                //safe_printf("terminated child\n");
-                //safe_printf("%d\n", status);
-                // TODO if status != 0 return 503?
-            }
-            break;
-            // TODO: Complete signal handler
-        default:
-            break;
-    } /* end switch */
-} /* end of sig_handler */
-
-static void
-print_usage(const char *progname) 
-{
-    fprintf(stderr, "Usage: %s options\n%s%s%s%s", progname,
-            "\t-d\tthe directory of web files\n",
-            "\t-f\tthe logfile (if '-' or option not set; logging will be redirected to stdout\n",
-            "\t-p\tthe port logging is redirected to stdout.for the server\n",
-            "TIT12 Gruppe 7: Michael Christa, Florian Hink\n");
-} /* end of print_usage */
 
 static int
 get_options(int argc, char *argv[], prog_options_t *opt) 
@@ -179,6 +138,16 @@ get_options(int argc, char *argv[], prog_options_t *opt)
 } /* end of get_options */
 
 static void
+print_usage(const char *progname) 
+{
+    fprintf(stderr, "Usage: %s options\n%s%s%s%s", progname,
+            "\t-d\tthe directory of web files\n",
+            "\t-f\tthe logfile (if '-' or option not set; logging will be redirected to stdout\n",
+            "\t-p\tthe port logging is redirected to stdout.for the server\n",
+            "TIT12 Gruppe 7: Michael Christa, Florian Hink\n");
+} /* end of print_usage */
+
+static void
 open_logfile(prog_options_t *opt) 
 {
     // open logfile or redirect to stdout
@@ -209,6 +178,29 @@ check_root_dir(prog_options_t *opt)
         exit(EXIT_FAILURE);
     } /* end if */
 } /* end of check_root_dir */
+
+static void
+sig_handler(int sig) 
+{
+    int status;
+    switch (sig) {
+        case SIGINT:
+            // use our own thread-safe implemention of printf
+            safe_printf("\n[%d] Server terminated due to keyboard interrupt\n", getpid());
+            server_running = false;
+            break;
+        case SIGCHLD:
+            while (waitpid(-1, &status, WNOHANG) > 0) {
+                //safe_printf("terminated child\n");
+                //safe_printf("%d\n", status);
+                // TODO if status != 0 return 503?
+            }
+            break;
+            // TODO: Complete signal handler
+        default:
+            break;
+    } /* end switch */
+} /* end of sig_handler */
 
 static void
 install_signal_handlers(void) 
@@ -274,40 +266,37 @@ create_server_socket(prog_options_t *server)
     return sfd;
 } /* end of create_server_socket */
 
-/**
- * write the response to client socket
- * @param   the client socket descriptor
- * @param   the response header
- * @param   the request method
- * @param   the filepath to requested file
- * @return  on error -1 is returned
- */
 static int
-write_response(int sd, char *header, char *method, char *filepath)
-{
+create_response_header_string(http_header_t response_header_data, char* response_header_string) {
+    snprintf(response_header_string, 50, "%s %hu %s\r\n", "HTTP/1.1", response_header_data.status.code, response_header_data.status.text);
+    safe_printf(response_header_string);
+    return 0;
+}
+
+static int
+write_response_header(int sd, char *response_header_string) {
     int retcode;
-    int file;               /* file descriptor of requested file */
-    int chunkSize = 256;    /* chunk size for write of message body */
-    //char chunk[chunkSize];  /* chunk for write of message body */
 
     /*
      * write header
      */
-    retcode = write(sd, header, strlen(header));
+    retcode = write(sd, response_header_string, strlen(response_header_string));
     if (retcode < 0) {
         perror("ERROR: write()");
         return -1;
     } /* end if */
 
-    if (strcmp(method, "HEAD") == 0) {
-        return retcode;
-    }
+    return 0;
+}
 
-    //safe_printf("%s\n", filepath);
+static int
+write_response_body(int sd, char *filepath) {
+    int retcode;
+    int file;               /* file descriptor of requested file */
+    int chunkSize = 256;    /* chunk size for write of message body */
 
-    /*
-     * write file
-     */
+    safe_printf("%s\n", filepath);
+
     file = open(filepath, O_RDONLY);
     if (file < 0) {
         perror("ERROR: open()");
@@ -339,179 +328,7 @@ write_response(int sd, char *header, char *method, char *filepath)
     }
 
     return retcode;
-} /* end of write_response */
-
-/**
- * creates the response header
- * @param   the http status
- * @param   the header pointer
- * @param   the request method
- * @param   the path to requested file
- * @return  on error -1 is returned
- */
-static int
-create_response_header(http_status_entry_t httpstat, char *header, char *method, char *filepath)
-{
-    int retcode = EXIT_SUCCESS;
-    struct stat fstat; /* file status */
-
-    //status line
-    snprintf(header, 50, "%s %hu %s\r\n", "HTTP/1.1", httpstat.code, httpstat.text);
-
-    // server
-    char server[30];
-    snprintf(server, 30, "%s%s\r\n", http_header_field_list[1], "Tinyweb 1.1");
-    strcat(header, server);
-
-    // time
-    char timeString [80];
-    char date [50];
-    time_t rawtime;
-    struct tm * timeinfo;
-    time(&rawtime);
-    timeinfo = localtime(&rawtime);
-    strftime(timeString, 80, "%a, %d %b %Y %H:%M:%S", timeinfo);
-    snprintf(date, 50, "%s%s\r\n", http_header_field_list[0], timeString);
-    strcat(header, date);
-
-    // connection
-    char connection [30];
-    snprintf(connection, 30, "%s%s\r\n",http_header_field_list[5], "keep-alive");
-    strcat(header, connection);
-
-    retcode = stat(filepath, &fstat);
-
-    if(S_ISDIR(fstat.st_mode)) {
-        //printf("%s\n", "directory found!");
-        char moved_permanently [50];
-        strcat(filepath, "/");
-        snprintf(moved_permanently, 50, "%s%s\r\n", http_header_field_list[7], filepath);
-        strcat(header, moved_permanently);
-    } else {
-        //last-modified
-        char last_modified [50];
-        timeinfo = localtime(&fstat.st_mtime);
-        strftime(timeString, 80, "%a, %d %b %Y %H:%M:%S GMT", timeinfo);
-        snprintf(last_modified, 50, "%s%s\r\n", http_header_field_list[2], timeString);
-        strcat(header, last_modified);
-
-        // content-length
-        char content_length [30];
-        snprintf(content_length, 29, "%s%lld\r\n", http_header_field_list[3], (long long)fstat.st_size);
-        strcat(header, content_length);
-
-        // content-type
-        char content_type [30];
-        char *contenttypestr;
-        http_content_type_t contenttype;
-        contenttype = get_http_content_type(filepath);
-        contenttypestr = get_http_content_type_str(contenttype);
-        snprintf(content_type, 30, "%s%s\r\n", http_header_field_list[4], contenttypestr);
-        strcat(header, content_type);
-    }
-
-    // close header
-    strcat(header, "\r\n");
-    //safe_printf(header);
-    return retcode;
-} /* end of create_response_header */
-
-/**
- * differentiates between request methods
- * @param   the socket descriptor
- * @param   the http status
- * @param   the request method
- * @param   the path to requested file
- * @return  on error -1 is returned
- */
-static int
-create_response(int sd, http_status_entry_t httpstat, char *method, char *filepath) 
-{
-    char header[500];
-
-    if (httpstat.code == http_status_list[2].code) {
-        create_response_header(httpstat, header, method, filepath);
-        strcat(filepath, "/status/301.html");
-        return write_response(sd, header, method, filepath);
-    }
-
-    if (strcmp(method, "GET") == 0) { /* GET method */
-        create_response_header(httpstat, header, method, filepath);
-        return write_response(sd, header, method, filepath);
-    } else { /* HEAD method */
-        create_response_header(httpstat, header, method, filepath);
-        return write_response(sd, header, method, filepath);
-    }
-} /* end of create_response */
-
-/**
- * differentiates between response statuses
- * @param   the socket descriptor
- * @param   the parsed request header
- * @param   the program options
- * @return  on error -1 is returned
- */
-static int
-return_response(int sd, parsed_http_header_t parsed_header, prog_options_t *server)
-{
-    int retcode;        /* return code */
-    char *filepath;     /* path to requested file */
-    struct stat fstat;  /* file status */
-
-    // path to folder + filename
-    filepath = malloc(strlen(parsed_header.filename) + strlen(server->root_dir) + 1);
-    if (filepath == NULL) {
-        perror("ERROR: malloc()");
-        return -1;
-    }
-
-    switch(parsed_header.httpState) {
-        case HTTP_STATUS_INTERNAL_SERVER_ERROR:
-            strcpy(filepath, server->root_dir);
-            strcat(filepath, "/status/500.html");
-            return create_response(sd, http_status_list[8], parsed_header.method, filepath);
-        case HTTP_STATUS_BAD_REQUEST:
-            strcpy(filepath, server->root_dir);
-            strcat(filepath, "/status/400.html");
-            return create_response(sd, http_status_list[4], parsed_header.method, filepath);
-        case HTTP_STATUS_NOT_IMPLEMENTED:
-            strcpy(filepath, server->root_dir);
-            strcat(filepath, "/status/501.html");
-            return create_response(sd, http_status_list[9], parsed_header.method, filepath);
-        default:
-            break;
-    }
-
-    strcpy(filepath, server->root_dir);
-    strcat(filepath, parsed_header.filename);
-    retcode = stat(filepath, &fstat);
-    if ((retcode < 0) && ((errno == ENOENT) || (errno == ENOTDIR))) {
-        strcpy(filepath, server->root_dir);
-        strcat(filepath, "/status/404.html");
-        return create_response(sd, http_status_list[6], parsed_header.method, filepath);
-    } else if ((retcode < 0) && (errno == EACCES)) {
-        // no access to file
-    } else if (retcode < 0) {
-        perror("ERROR: stat()");
-    }
-
-    if(S_ISDIR(fstat.st_mode)) {
-        return create_response(sd, http_status_list[2], parsed_header.method, filepath);
-    }
-
-    if(parsed_header.modsince != 0) {
-        safe_printf("%d\t", parsed_header.modsince);
-        int seconds;
-        seconds = difftime(parsed_header.modsince, fstat.st_mtime);
-        safe_printf("%d\t", seconds);
-        if (seconds > 0) {
-            safe_printf("%s\n", http_status_list[3].text);
-            return create_response(sd, http_status_list[3], parsed_header.method, filepath);  
-        }
-    }
-
-    return create_response(sd, http_status_list[0], parsed_header.method, filepath);
-} /* end of return_response */
+}
 
 /**
  * Handle clients.
@@ -522,61 +339,63 @@ return_response(int sd, parsed_http_header_t parsed_header, prog_options_t *serv
 static int
 handle_client(int sd, prog_options_t *server, struct sockaddr_in client) 
 {
-    // maybe define a HTTP_MAX_HEADER_SIZE to prevent DOS attacks
-    // run till /n/r/n/r
-    int BUFSIZE = 1000; /* buffer size */
-    char buf[BUFSIZE]; /* buffer */
-    int cc; /* character count */
-    parsed_http_header_t parsed_header; /* parsed header */
-    int retcode;
+    int BUFSIZE = 1000;
+    char client_header[BUFSIZE];
+    char server_header[BUFSIZE];
+    parsed_http_header_t parsed_header;
+    http_header_t response_header_data;
+    int retcode = 0;
+    char *filepath;     /* path to requested file */
 
-    // read from client
-    while ((cc = read(sd, buf, BUFSIZE)) > 0) {
-        //TODO: Test maximal bufsize
-        // parse the header
-        parsed_header = parse_http_header(buf);
+    read_from_socket(sd, client_header, BUFSIZE, server->timeout);
+    parsed_header = parse_http_header(client_header);
 
-        /*
-         * write log
-         */
-        // time
-        char timeString [80];
-        char date [50];
-        time_t rawtime;
-        struct tm * timeinfo;
-        time(&rawtime);
-        timeinfo = localtime(&rawtime);
-        strftime(timeString, 80, "%a, %d %b %Y %H:%M:%S", timeinfo);
-        snprintf(date, 50, "%s +0200", timeString);
+    // check on parsed http status
+    switch(parsed_header.httpState) {
+        case HTTP_STATUS_INTERNAL_SERVER_ERROR:
+            safe_printf("%s\n", "internal server error");
+        case HTTP_STATUS_BAD_REQUEST:
+            safe_printf("%s\n", "bad request");
+        case HTTP_STATUS_NOT_IMPLEMENTED:
+            safe_printf("%s\n", "not implemented");
+            response_header_data.status = http_status_list[9];
+            create_response_header_string(response_header_data, server_header);
+            return write_response_header(sd, server_header);
+        default:
+            break;
+    }
 
-        // IP Address
-        char str[INET_ADDRSTRLEN];
-        inet_ntop(AF_INET, &(client.sin_addr), str, INET_ADDRSTRLEN);
-        //safe_printf("%s - - [%s] \"%s %s %s\" %d\n", str, date, parsed_header.method, parsed_header.filename, parsed_header.protocol, http_status_list[parsed_header.httpState].code);
-
-        retcode = return_response(sd, parsed_header, server);
-        if (retcode < 0) {
-            parsed_header.httpState = HTTP_STATUS_INTERNAL_SERVER_ERROR;
-            return_response(sd, parsed_header, server);
+    // check on parsed http method
+    if (strcmp(parsed_header.method, "GET") == 0) { /* GET method */
+        safe_printf("%s\n", "GET");
+        // path to folder + filename
+        filepath = malloc(strlen(parsed_header.filename) + strlen(server->root_dir) + 1);
+        if (filepath == NULL) {
+            perror("ERROR: malloc()");
             return -1;
         }
+        memset(filepath, 0, strlen(filepath));
+        strcpy(filepath, server->root_dir);
+        strcat(filepath, parsed_header.filename);
+        response_header_data.status = http_status_list[0];
+        create_response_header_string(response_header_data, server_header);
+        write_response_header(sd, server_header);
+        return write_response_body(sd, parsed_header.filename);
+    } else { /* HEAD method */
+        safe_printf("%s\n", "HEAD");
+        response_header_data.status = http_status_list[0];
+        create_response_header_string(response_header_data, server_header);
+        return write_response_header(sd, server_header);
     }
-    if (cc < 0) { /* error occured while reading */
-        perror("ERROR: read()");
-    } else if (cc == 0) { /* zero indicates end of file */
-        //TODO handle connection closed
-        //safe_printf("%s\n", "connection closed!");
-    } /* end if */
 
-    // TODO: write request to log file
-    return 0;
+    return retcode;
 } /* end of handle_client */
 
 /**
  * Accept clients on the socket.
- * @param   the socket descriptor
- * @param   the program options
- * @return  a new socket descriptor
+ * @input_param     the socket descriptor
+ * @input_param     the program options
+ * @return          unequal zero in case of error
  */
 static int
 accept_client(int sd, prog_options_t *server) 
@@ -634,11 +453,10 @@ accept_client(int sd, prog_options_t *server)
 } /* end of accept_client */
 
 int
-main(int argc, char *argv[]) 
-{
+main(int argc, char *argv[]) {
     int retcode = EXIT_SUCCESS;
-    int sd;
     prog_options_t my_opt;
+    int socketDescriptor;
 
     // read program options
     if (get_options(argc, argv, &my_opt) == 0) {
@@ -656,12 +474,13 @@ main(int argc, char *argv[])
     open_logfile(&my_opt);
     check_root_dir(&my_opt);
     install_signal_handlers();
-    init_logging_semaphore();
+    //init_logging_semaphore();
 
-    // create the socket
-    sd = create_server_socket(&my_opt);
-    if (sd < 0) {
+    // create the server socket
+    socketDescriptor = create_server_socket(&my_opt);
+    if (retcode < 0) {
         perror("ERROR: creating socket()");
+        exit(retcode);
     } /* end if */
 
     // here, as an example, show how to interact with the
@@ -670,9 +489,13 @@ main(int argc, char *argv[])
     server_running = true;
     while (server_running) {
         // TODO: add error handling to accept_client
-        accept_client(sd, &my_opt);
+        retcode = accept_client(socketDescriptor, &my_opt);
+        if (retcode < 0) {
+            perror("ERROR: accepting clients()");
+            exit(retcode);
+        } /* end if */
     } /* end while */
 
     printf("[%d] Good Bye...", getpid());
-    exit(retcode);
+    return retcode;
 } /* end of main */
