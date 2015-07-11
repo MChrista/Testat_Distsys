@@ -351,6 +351,7 @@ handle_client(int sd, prog_options_t *server, struct sockaddr_in client)
     parsed_header = parse_http_header(client_header);
 
     // check on parsed http status
+    //TODO HTTP_RANGE_NOT_SATISFIABLE handeln
     switch(parsed_header.httpState) {
         case HTTP_STATUS_INTERNAL_SERVER_ERROR:
             safe_printf("%s\n", "internal server error");
@@ -364,9 +365,12 @@ handle_client(int sd, prog_options_t *server, struct sockaddr_in client)
         default:
             break;
     }
-
     // check on parsed http method
-    if (strcmp(parsed_header.method, "GET") == 0) { /* GET method */
+    //TODO check CGI
+    //TODO Partial Content
+    if(parsed_header.isCGI){
+        
+    }else if (strcmp(parsed_header.method, "GET") == 0) { /* GET method */
         safe_printf("%s\n", "GET");
         // path to folder + filename
         filepath = malloc(strlen(parsed_header.filename) + strlen(server->root_dir) + 1);
