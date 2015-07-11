@@ -47,7 +47,7 @@ typedef struct http_status_entry {
 
 
 typedef struct http_header {
-    char    *status;
+    http_status_entry_t status;
     char    *date;
     char    *server;
     char    *last_modified;
