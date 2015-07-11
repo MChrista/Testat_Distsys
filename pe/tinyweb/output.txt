@@ -1,0 +1,550 @@
+make: Nothing to be done for 'all'.
+TE: deflate,gzip;q=0.3
+Connection: TE, close
+Host: localhost:8080
+User-Agent: TinyWeb Test Harness, Test Script t/00date.t
+
+127.0.0.1 - - [Thu, 09 Jul 2015 18:29:50 +0200] "GET /index.html HTTP/1.1" 200
+Note: logging is redirected to stdout.
+[5834] Starting server 'tinyweb'...
+TE: deflate,gzip;q=0.3
+Connection: TE, close
+Host: localhost:8080
+User-Agent: TinyWeb Test Harness, Test Script t/00date.t
+
+127.0.0.1 - - [Thu, 09 Jul 2015 18:29:50 +0200] "GET /css/default.css HTTP/1.1" 200
+Note: logging is redirected to stdout.
+[5834] Starting server 'tinyweb'...
+TE: deflate,gzip;q=0.3
+Connection: TE, close
+Host: localhost:8080
+User-Agent: TinyWeb Test Harness, Test Script t/00date.t
+
+127.0.0.1 - - [Thu, 09 Jul 2015 18:29:50 +0200] "GET /blablabla.html HTTP/1.1" 200
+Note: logging is redirected to stdout.
+[5834] Starting server 'tinyweb'...
+TE: deflate,gzip;q=0.3
+Connection: TE, close
+Host: localhost:8080
+User-Agent: TinyWeb Test Harness, Test Script t/00date.t
+
+ÿ
+127.0.0.1 - - [Thu, 09 Jul 2015 18:29:50 +0200] "GET /css/xyz.html HTTP/1.1" 200
+Note: logging is redirected to stdout.
+[5834] Starting server 'tinyweb'...
+TE: deflate,gzip;q=0.3
+Connection: TE, close
+Host: localhost:8080
+User-Agent: TinyWeb Test Harness, Test Script t/00date.t
+
+ÿÿ
+127.0.0.1 - - [Thu, 09 Jul 2015 18:29:50 +0200] "HEAD /index.html HTTP/1.1" 200
+Note: logging is redirected to stdout.
+[5834] Starting server 'tinyweb'...
+TE: deflate,gzip;q=0.3
+Connection: TE, close
+Host: localhost:8080
+User-Agent: TinyWeb Test Harness, Test Script t/00date.t
+
+127.0.0.1 - - [Thu, 09 Jul 2015 18:29:50 +0200] "HEAD /css/default.css HTTP/1.1" 200
+Note: logging is redirected to stdout.
+[5834] Starting server 'tinyweb'...
+TE: deflate,gzip;q=0.3
+Connection: TE, close
+Host: localhost:8080
+User-Agent: TinyWeb Test Harness, Test Script t/00date.t
+
+127.0.0.1 - - [Thu, 09 Jul 2015 18:29:50 +0200] "HEAD /blablabla.html HTTP/1.1" 200
+Note: logging is redirected to stdout.
+[5834] Starting server 'tinyweb'...
+TE: deflate,gzip;q=0.3
+Connection: TE, close
+Host: localhost:8080
+User-Agent: TinyWeb Test Harness, Test Script t/00date.t
+
+127.0.0.1 - - [Thu, 09 Jul 2015 18:29:50 +0200] "HEAD /css/xyz.html HTTP/1.1" 200
+Note: logging is redirected to stdout.
+[5834] Starting server 'tinyweb'...
+TE: deflate,gzip;q=0.3
+Connection: TE, close
+Host: localhost:8080
+User-Agent: TinyWeb Test Harness, Test Script t/00server.t
+
+ÿ
+127.0.0.1 - - [Thu, 09 Jul 2015 18:29:50 +0200] "GET /index.html HTTP/1.1" 200
+Note: logging is redirected to stdout.
+[5834] Starting server 'tinyweb'...
+TE: deflate,gzip;q=0.3
+Connection: TE, close
+Host: localhost:8080
+User-Agent: TinyWeb Test Harness, Test Script t/00server.t
+
+127.0.0.1 - - [Thu, 09 Jul 2015 18:29:50 +0200] "GET /css/default.css HTTP/1.1" 200
+Note: logging is redirected to stdout.
+[5834] Starting server 'tinyweb'...
+TE: deflate,gzip;q=0.3
+Connection: TE, close
+Host: localhost:8080
+User-Agent: TinyWeb Test Harness, Test Script t/00server.t
+
+127.0.0.1 - - [Thu, 09 Jul 2015 18:29:50 +0200] "GET /blablabla.html HTTP/1.1" 200
+Note: logging is redirected to stdout.
+[5834] Starting server 'tinyweb'...
+TE: deflate,gzip;q=0.3
+Connection: TE, close
+Host: localhost:8080
+User-Agent: TinyWeb Test Harness, Test Script t/00server.t
+
+127.0.0.1 - - [Thu, 09 Jul 2015 18:29:50 +0200] "GET /css/xyz.html HTTP/1.1" 200
+Note: logging is redirected to stdout.
+[5834] Starting server 'tinyweb'...
+TE: deflate,gzip;q=0.3
+Connection: TE, close
+Host: localhost:8080
+User-Agent: TinyWeb Test Harness, Test Script t/00server.t
+
+127.0.0.1 - - [Thu, 09 Jul 2015 18:29:50 +0200] "HEAD /index.html HTTP/1.1" 200
+Note: logging is redirected to stdout.
+[5834] Starting server 'tinyweb'...
+TE: deflate,gzip;q=0.3
+Connection: TE, close
+Host: localhost:8080
+User-Agent: TinyWeb Test Harness, Test Script t/00server.t
+
+127.0.0.1 - - [Thu, 09 Jul 2015 18:29:50 +0200] "HEAD /css/default.css HTTP/1.1" 200
+Note: logging is redirected to stdout.
+[5834] Starting server 'tinyweb'...
+TE: deflate,gzip;q=0.3
+Connection: TE, close
+Host: localhost:8080
+User-Agent: TinyWeb Test Harness, Test Script t/00server.t
+
+127.0.0.1 - - [Thu, 09 Jul 2015 18:29:51 +0200] "HEAD /blablabla.html HTTP/1.1" 200
+Note: logging is redirected to stdout.
+[5834] Starting server 'tinyweb'...
+TE: deflate,gzip;q=0.3
+Connection: TE, close
+Host: localhost:8080
+User-Agent: TinyWeb Test Harness, Test Script t/00server.t
+
+127.0.0.1 - - [Thu, 09 Jul 2015 18:29:51 +0200] "HEAD /css/xyz.html HTTP/1.1" 200
+Note: logging is redirected to stdout.
+[5834] Starting server 'tinyweb'...
+TE: deflate,gzip;q=0.3
+Connection: TE, close
+Host: localhost:8080
+User-Agent: TinyWeb Test Harness, Test Script t/00status.t
+
+ÿ
+127.0.0.1 - - [Thu, 09 Jul 2015 18:29:51 +0200] "GET /index.html HTTP/1.1" 200
+Note: logging is redirected to stdout.
+[5834] Starting server 'tinyweb'...
+TE: deflate,gzip;q=0.3
+Connection: TE, close
+Host: localhost:8080
+User-Agent: TinyWeb Test Harness, Test Script t/00status.t
+
+127.0.0.1 - - [Thu, 09 Jul 2015 18:29:51 +0200] "GET /css/default.css HTTP/1.1" 200
+Note: logging is redirected to stdout.
+[5834] Starting server 'tinyweb'...
+TE: deflate,gzip;q=0.3
+Connection: TE, close
+Host: localhost:8080
+User-Agent: TinyWeb Test Harness, Test Script t/00status.t
+
+127.0.0.1 - - [Thu, 09 Jul 2015 18:29:51 +0200] "GET /blablabla.html HTTP/1.1" 200
+Note: logging is redirected to stdout.
+[5834] Starting server 'tinyweb'...
+TE: deflate,gzip;q=0.3
+Connection: TE, close
+Host: localhost:8080
+User-Agent: TinyWeb Test Harness, Test Script t/00status.t
+
+127.0.0.1 - - [Thu, 09 Jul 2015 18:29:51 +0200] "GET /css/xyz.html HTTP/1.1" 200
+Note: logging is redirected to stdout.
+[5834] Starting server 'tinyweb'...
+TE: deflate,gzip;q=0.3
+Connection: TE, close
+Host: localhost:8080
+User-Agent: TinyWeb Test Harness, Test Script t/00status.t
+
+127.0.0.1 - - [Thu, 09 Jul 2015 18:29:51 +0200] "HEAD /index.html HTTP/1.1" 200
+Note: logging is redirected to stdout.
+[5834] Starting server 'tinyweb'...
+TE: deflate,gzip;q=0.3
+Connection: TE, close
+Host: localhost:8080
+User-Agent: TinyWeb Test Harness, Test Script t/00status.t
+
+127.0.0.1 - - [Thu, 09 Jul 2015 18:29:51 +0200] "HEAD /css/default.css HTTP/1.1" 200
+Note: logging is redirected to stdout.
+[5834] Starting server 'tinyweb'...
+TE: deflate,gzip;q=0.3
+Connection: TE, close
+Host: localhost:8080
+User-Agent: TinyWeb Test Harness, Test Script t/00status.t
+
+127.0.0.1 - - [Thu, 09 Jul 2015 18:29:51 +0200] "HEAD /blablabla.html HTTP/1.1" 200
+Note: logging is redirected to stdout.
+[5834] Starting server 'tinyweb'...
+TE: deflate,gzip;q=0.3
+Connection: TE, close
+Host: localhost:8080
+User-Agent: TinyWeb Test Harness, Test Script t/00status.t
+
+127.0.0.1 - - [Thu, 09 Jul 2015 18:29:51 +0200] "HEAD /css/xyz.html HTTP/1.1" 200
+Note: logging is redirected to stdout.
+[5834] Starting server 'tinyweb'...
+
+127.0.0.1 - - [Thu, 09 Jul 2015 18:29:51 +0200] "GET /index.html HTTP/1.1" 200
+
+127.0.0.1 - - [Thu, 09 Jul 2015 18:29:51 +0200] "HEAD /index.html HTTP/1.1" 200
+Note: logging is redirected to stdout.
+[5834] Starting server 'tinyweb'...
+
+127.0.0.1 - - [Thu, 09 Jul 2015 18:29:51 +0200] "OPTIONS /index.html HTTP/1.1" 501
+Note: logging is redirected to stdout.
+[5834] Starting server 'tinyweb'...
+
+127.0.0.1 - - [Thu, 09 Jul 2015 18:29:51 +0200] "POST /index.html HTTP/1.1" 501
+Note: logging is redirected to stdout.
+[5834] Starting server 'tinyweb'...
+
+127.0.0.1 - - [Thu, 09 Jul 2015 18:29:51 +0200] "PUT /index.html HTTP/1.1" 501
+Note: logging is redirected to stdout.
+[5834] Starting server 'tinyweb'...
+
+127.0.0.1 - - [Thu, 09 Jul 2015 18:29:51 +0200] "DELETE /index.html HTTP/1.1" 501
+Note: logging is redirected to stdout.
+[5834] Starting server 'tinyweb'...
+
+127.0.0.1 - - [Thu, 09 Jul 2015 18:29:51 +0200] "TRACE /index.html HTTP/1.1" 501
+Note: logging is redirected to stdout.
+[5834] Starting server 'tinyweb'...
+
+127.0.0.1 - - [Thu, 09 Jul 2015 18:29:51 +0200] "CONNECT /index.html HTTP/1.1" 501
+Note: logging is redirected to stdout.
+[5834] Starting server 'tinyweb'...
+
+127.0.0.1 - - [Thu, 09 Jul 2015 18:29:51 +0200] "DUMMY /index.html HTTP/1.1" 501
+Note: logging is redirected to stdout.
+[5834] Starting server 'tinyweb'...
+TE: deflate,gzip;q=0.3
+Connection: TE, close
+Accept: */*
+Host: localhost:8080
+User-Agent: TinyWeb Test Harness, Test Script t/02basic.t
+
+127.0.0.1 - - [Thu, 09 Jul 2015 18:29:51 +0200] "GET /index.html HTTP/1.1" 200
+Note: logging is redirected to stdout.
+[5834] Starting server 'tinyweb'...
+TE: deflate,gzip;q=0.3
+Connection: TE, close
+Accept: */*
+Host: localhost:8080
+User-Agent: TinyWeb Test Harness, Test Script t/02basic.t
+
+127.0.0.1 - - [Thu, 09 Jul 2015 18:29:51 +0200] "HEAD /index.html HTTP/1.1" 200
+Note: logging is redirected to stdout.
+[5834] Starting server 'tinyweb'...
+TE: deflate,gzip;q=0.3
+Connection: TE, close
+Accept: */*
+Host: localhost:8080
+User-Agent: TinyWeb Test Harness, Test Script t/02basic.t
+
+127.0.0.1 - - [Thu, 09 Jul 2015 18:29:51 +0200] "HEAD /images/computerhead1.gif HTTP/1.1" 200
+Note: logging is redirected to stdout.
+[5834] Starting server 'tinyweb'...
+TE: deflate,gzip;q=0.3
+Connection: TE, close
+Accept: */*
+Host: localhost:8080
+User-Agent: TinyWeb Test Harness, Test Script t/02basic.t
+
+127.0.0.1 - - [Thu, 09 Jul 2015 18:29:51 +0200] "GET /images/computerhead1.gif HTTP/1.1" 200
+Note: logging is redirected to stdout.
+[5834] Starting server 'tinyweb'...
+TE: deflate,gzip;q=0.3
+Connection: TE, close
+Accept: */*
+Host: localhost:8080
+User-Agent: TinyWeb Test Harness, Test Script t/02basic.t
+
+127.0.0.1 - - [Thu, 09 Jul 2015 18:29:51 +0200] "HEAD /example.pdf HTTP/1.1" 200
+Note: logging is redirected to stdout.
+[5834] Starting server 'tinyweb'...
+TE: deflate,gzip;q=0.3
+Connection: TE, close
+Accept: */*
+Host: localhost:8080
+User-Agent: TinyWeb Test Harness, Test Script t/02basic.t
+
+127.0.0.1 - - [Thu, 09 Jul 2015 18:30:21 +0200] "GET /example.pdf HTTP/1.1" 200
+Note: logging is redirected to stdout.
+[5834] Starting server 'tinyweb'...
+TE: deflate,gzip;q=0.3
+Connection: TE, close
+Accept: */*
+Host: localhost:8080
+User-Agent: TinyWeb Test Harness, Test Script t/02basic.t
+
+127.0.0.1 - - [Thu, 09 Jul 2015 18:30:51 +0200] "HEAD /css/default.css HTTP/1.1" 200
+Note: logging is redirected to stdout.
+[5834] Starting server 'tinyweb'...
+TE: deflate,gzip;q=0.3
+Connection: TE, close
+Accept: */*
+Host: localhost:8080
+User-Agent: TinyWeb Test Harness, Test Script t/02basic.t
+
+127.0.0.1 - - [Thu, 09 Jul 2015 18:30:51 +0200] "GET /css/default.css HTTP/1.1" 200
+Note: logging is redirected to stdout.
+[5834] Starting server 'tinyweb'...
+TE: deflate,gzip;q=0.3
+Connection: TE, close
+Accept: */*
+Host: localhost:8080
+User-Agent: TinyWeb Test Harness, Test Script t/02basic.t
+
+127.0.0.1 - - [Thu, 09 Jul 2015 18:30:51 +0200] "HEAD /blablabla.html HTTP/1.1" 200
+Note: logging is redirected to stdout.
+[5834] Starting server 'tinyweb'...
+TE: deflate,gzip;q=0.3
+Connection: TE, close
+Accept: */*
+Host: localhost:8080
+User-Agent: TinyWeb Test Harness, Test Script t/02basic.t
+
+127.0.0.1 - - [Thu, 09 Jul 2015 18:30:51 +0200] "GET /blablabla.html HTTP/1.1" 200
+Note: logging is redirected to stdout.
+[5834] Starting server 'tinyweb'...
+TE: deflate,gzip;q=0.3
+Connection: TE, close
+Accept: */*
+Host: localhost:8080
+User-Agent: TinyWeb Test Harness, Test Script t/02basic.t
+
+127.0.0.1 - - [Thu, 09 Jul 2015 18:30:51 +0200] "HEAD /longtext.txt HTTP/1.1" 200
+Note: logging is redirected to stdout.
+[5834] Starting server 'tinyweb'...
+TE: deflate,gzip;q=0.3
+Connection: TE, close
+Accept: */*
+Host: localhost:8080
+User-Agent: TinyWeb Test Harness, Test Script t/02basic.t
+
+127.0.0.1 - - [Thu, 09 Jul 2015 18:30:51 +0200] "GET /longtext.txt HTTP/1.1" 200
+Note: logging is redirected to stdout.
+[5834] Starting server 'tinyweb'...
+TE: deflate,gzip;q=0.3
+Connection: TE, close
+Host: localhost:8080
+User-Agent: TinyWeb Test Harness, Test Script t/02mime.t
+
+127.0.0.1 - - [Thu, 09 Jul 2015 18:30:52 +0200] "GET /index.html HTTP/1.1" 200
+Note: logging is redirected to stdout.
+[5834] Starting server 'tinyweb'...
+TE: deflate,gzip;q=0.3
+Connection: TE, close
+Host: localhost:8080
+User-Agent: TinyWeb Test Harness, Test Script t/02mime.t
+
+ÿÿ
+127.0.0.1 - - [Thu, 09 Jul 2015 18:30:52 +0200] "HEAD /index.html HTTP/1.1" 200
+Note: logging is redirected to stdout.
+[5834] Starting server 'tinyweb'...
+TE: deflate,gzip;q=0.3
+Connection: TE, close
+Host: localhost:8080
+User-Agent: TinyWeb Test Harness, Test Script t/02mime.t
+
+127.0.0.1 - - [Thu, 09 Jul 2015 18:30:52 +0200] "HEAD /images/computerhead1.gif HTTP/1.1" 200
+Note: logging is redirected to stdout.
+[5834] Starting server 'tinyweb'...
+TE: deflate,gzip;q=0.3
+Connection: TE, close
+Host: localhost:8080
+User-Agent: TinyWeb Test Harness, Test Script t/02mime.t
+
+127.0.0.1 - - [Thu, 09 Jul 2015 18:30:52 +0200] "GET /images/computerhead1.gif HTTP/1.1" 200
+Note: logging is redirected to stdout.
+[5834] Starting server 'tinyweb'...
+TE: deflate,gzip;q=0.3
+Connection: TE, close
+Host: localhost:8080
+User-Agent: TinyWeb Test Harness, Test Script t/02mime.t
+
+ÿ
+127.0.0.1 - - [Thu, 09 Jul 2015 18:30:52 +0200] "HEAD /example.pdf HTTP/1.1" 200
+Note: logging is redirected to stdout.
+[5834] Starting server 'tinyweb'...
+TE: deflate,gzip;q=0.3
+Connection: TE, close
+Host: localhost:8080
+User-Agent: TinyWeb Test Harness, Test Script t/02mime.t
+
+ÿÿ
+127.0.0.1 - - [Thu, 09 Jul 2015 18:31:22 +0200] "GET /example.pdf HTTP/1.1" 200
+Note: logging is redirected to stdout.
+[5834] Starting server 'tinyweb'...
+TE: deflate,gzip;q=0.3
+Connection: TE, close
+Host: localhost:8080
+User-Agent: TinyWeb Test Harness, Test Script t/02mime.t
+
+127.0.0.1 - - [Thu, 09 Jul 2015 18:31:52 +0200] "HEAD /css/default.css HTTP/1.1" 200
+Note: logging is redirected to stdout.
+[5834] Starting server 'tinyweb'...
+TE: deflate,gzip;q=0.3
+Connection: TE, close
+Host: localhost:8080
+User-Agent: TinyWeb Test Harness, Test Script t/02mime.t
+
+127.0.0.1 - - [Thu, 09 Jul 2015 18:31:52 +0200] "GET /css/default.css HTTP/1.1" 200
+Note: logging is redirected to stdout.
+[5834] Starting server 'tinyweb'...
+TE: deflate,gzip;q=0.3
+Connection: TE, close
+Host: localhost:8080
+User-Agent: TinyWeb Test Harness, Test Script t/02mime.t
+
+127.0.0.1 - - [Thu, 09 Jul 2015 18:31:52 +0200] "GET /zeros1.jpg HTTP/1.1" 200
+Note: logging is redirected to stdout.
+[5834] Starting server 'tinyweb'...
+TE: deflate,gzip;q=0.3
+Connection: TE, close
+Host: localhost:8080
+User-Agent: TinyWeb Test Harness, Test Script t/02mime.t
+
+127.0.0.1 - - [Thu, 09 Jul 2015 18:31:52 +0200] "GET /zeros2.jpg HTTP/1.1" 200
+Note: logging is redirected to stdout.
+[5834] Starting server 'tinyweb'...
+TE: deflate,gzip;q=0.3
+Connection: TE, close
+Host: localhost:8080
+User-Agent: TinyWeb Test Harness, Test Script t/02mime.t
+
+127.0.0.1 - - [Thu, 09 Jul 2015 18:31:52 +0200] "GET /zeros3.jpg HTTP/1.1" 200
+Note: logging is redirected to stdout.
+[5834] Starting server 'tinyweb'...
+TE: deflate,gzip;q=0.3
+Connection: TE, close
+Accept: */*
+Host: localhost:8080
+User-Agent: TinyWeb Test Harness, Test Script t/02zero.t
+
+127.0.0.1 - - [Thu, 09 Jul 2015 18:31:52 +0200] "GET /zeros1.jpg HTTP/1.1" 200
+Note: logging is redirected to stdout.
+[5834] Starting server 'tinyweb'...
+TE: deflate,gzip;q=0.3
+Connection: TE, close
+Accept: */*
+Host: localhost:8080
+User-Agent: TinyWeb Test Harness, Test Script t/02zero.t
+
+127.0.0.1 - - [Thu, 09 Jul 2015 18:31:52 +0200] "GET /zeros2.jpg HTTP/1.1" 200
+Note: logging is redirected to stdout.
+[5834] Starting server 'tinyweb'...
+TE: deflate,gzip;q=0.3
+Connection: TE, close
+Accept: */*
+Host: localhost:8080
+User-Agent: TinyWeb Test Harness, Test Script t/02zero.t
+
+127.0.0.1 - - [Thu, 09 Jul 2015 18:31:52 +0200] "GET /zeros3.jpg HTTP/1.1" 200
+Note: logging is redirected to stdout.
+[5834] Starting server 'tinyweb'...
+TE: deflate,gzip;q=0.3
+Connection: TE, close
+Host: localhost:8080
+User-Agent: TinyWeb Test Harness, Test Script t/03moved.t
+
+127.0.0.1 - - [Thu, 09 Jul 2015 18:31:52 +0200] "HEAD /css HTTP/1.1" 200
+Note: logging is redirected to stdout.
+[5834] Starting server 'tinyweb'...
+directory found!
+TE: deflate,gzip;q=0.3
+Connection: TE, close
+Host: localhost:8080
+User-Agent: TinyWeb Test Harness, Test Script t/03moved.t
+
+127.0.0.1 - - [Thu, 09 Jul 2015 18:31:52 +0200] "GET /css HTTP/1.1" 200
+Note: logging is redirected to stdout.
+[5834] Starting server 'tinyweb'...
+directory found!
+TE: deflate,gzip;q=0.3
+Connection: TE, close
+Host: localhost:8080
+User-Agent: TinyWeb Test Harness, Test Script t/03moved.t
+
+
+127.0.0.1 - - [Thu, 09 Jul 2015 18:31:53 +0200] "HEAD /source HTTP/1.1" 200
+Note: logging is redirected to stdout.
+[5834] Starting server 'tinyweb'...
+directory found!
+TE: deflate,gzip;q=0.3
+Connection: TE, close
+Host: localhost:8080
+User-Agent: TinyWeb Test Harness, Test Script t/03moved.t
+
+€
+127.0.0.1 - - [Thu, 09 Jul 2015 18:31:53 +0200] "GET /source HTTP/1.1" 200
+Note: logging is redirected to stdout.
+[5834] Starting server 'tinyweb'...
+directory found!
+TE: deflate,gzip;q=0.3
+Connection: TE, close
+Accept: */*
+Host: localhost:8080
+If-Modified-Since: Mon, 08 Jun 2015 07:59:31 GMT
+User-Agent: TinyWeb Test Harness, Test Script t/04modsince.t
+
+127.0.0.1 - - [Thu, 09 Jul 2015 18:31:53 +0200] "GET /images/computerhead1.gif HTTP/1.1" 200
+Note: logging is redirected to stdout.
+[5834] Starting server 'tinyweb'...
+TE: deflate,gzip;q=0.3
+Connection: TE, close
+Accept: */*
+Host: localhost:8080
+If-Modified-Since: Mon, 08 Jun 2015 07:59:32 GMT
+User-Agent: TinyWeb Test Harness, Test Script t/04modsince.t
+
+127.0.0.1 - - [Thu, 09 Jul 2015 18:31:53 +0200] "GET /images/computerhead1.gif HTTP/1.1" 200
+Note: logging is redirected to stdout.
+[5834] Starting server 'tinyweb'...
+TE: deflate,gzip;q=0.3
+Connection: TE, close
+Accept: */*
+Host: localhost:8080
+If-Modified-Since: Mon, 08 Jun 2015 07:59:30 GMT
+User-Agent: TinyWeb Test Harness, Test Script t/04modsince.t
+
+127.0.0.1 - - [Thu, 09 Jul 2015 18:31:53 +0200] "GET /images/computerhead1.gif HTTP/1.1" 200
+Note: logging is redirected to stdout.
+[5834] Starting server 'tinyweb'...
+TE: deflate,gzip;q=0.3
+Connection: TE, close
+Accept: */*
+Host: localhost:8080
+If-Modified-Since: Mon, 08 Jun 2015 08:52:52 GMT
+User-Agent: TinyWeb Test Harness, Test Script t/04modsince.t
+
+127.0.0.1 - - [Thu, 09 Jul 2015 18:31:53 +0200] "GET /images/computerhead1.gif HTTP/1.1" 200
+Note: logging is redirected to stdout.
+[5834] Starting server 'tinyweb'...
+TE: deflate,gzip;q=0.3
+Connection: TE, close
+Accept: */*
+Host: localhost:8080
+If-Modified-Since: Mon, 08 Jun 2015 07:06:10 GMT
+User-Agent: TinyWeb Test Harness, Test Script t/04modsince.t
+
+127.0.0.1 - - [Thu, 09 Jul 2015 18:31:53 +0200] "GET /images/computerhead1.gif HTTP/1.1" 200
+Note: logging is redirected to stdout.
+[5834] Starting server 'tinyweb'...
+
+[5834] Server terminated due to keyboard interrupt
+Note: logging is redirected to stdout.
+[5834] Starting server 'tinyweb'...
+[5834] Good Bye...

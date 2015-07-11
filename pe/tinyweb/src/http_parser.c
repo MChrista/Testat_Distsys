@@ -80,31 +80,35 @@ parse_http_header(char *header) {
             }
             /*
              * TODO: Handle other Header Fields
-             * DATE
              * RANGE
              * 
              */
-            regex_t lastModRegex;
-            char *lastModStr = "^If-Modified-Since:[[:blank:]]";
-            char *lsz = "If-Modified-Since: Sat, 29 Oct 1994 19:43:31\n";
-            int lrv = regcomp(&lastModRegex, lastModStr, REG_ICASE);
-            if (lrv != 0) {
-                safe_printf("regcomp failed with %d\n", lrv);
-            }
-            regmatch_t matches[MAX_MATCHES];
-            if (regexec(&lastModRegex, lsz, MAX_MATCHES, matches, 0) == 0) {
-                //safe_printf("begin: %d end: %d", matches[0].rm_so, matches[0].rm_eo);
+            regex_t rangeRegex;
+            int rv = regcomp(&rangeRegex, "^Range"
+                    "[[:blank:]]\\{0,\\}"
+                    ":[[:blank:]]\\{0,\\}"
+                    "bytes=[[:digit:]]\\{1,\\}-\\?", REG_ICASE);
 
+            if (rv != 0) {
+                safe_printf("regcomp failed with %d\n", rv);
             }
+            //char *sz = "Range: bytes=1--\n";
+
 
             pointer = strtok(NULL, "\n");
             while (pointer != NULL) {
+                safe_printf("%s\n", pointer);
                 struct tm tm;
                 char *ret = strptime(pointer, "If-Modified-Since: %a, %d %b %Y %H:%M:%S", &tm);
                 if (ret != NULL) {
                     time_t t = mktime(&tm);
                     parsed_header.modsince = t;
                 }
+
+                if (regexec(&rangeRegex, pointer, MAX_MATCHES, matches, 0) == 0) {
+                    safe_printf("begin: %d end: %d\n",matches[0].rm_so,matches[0].rm_eo);
+                }
+
                 pointer = strtok(NULL, "\n");
             }
 
@@ -125,7 +129,7 @@ void parseHeaderField(char *str) {
      * If-Modified-Since - sonst 304 ohne ressource
      * 
      */
-    regex_t rangeRegex;
+    
     regex_t lastModRegex;
     char *lastModStr = "^If-Modified-Since:[[:blank:]]";
     char *lsz = "If-Modified-Since: Sat, 29 Oct 1994 19:43:31 GMT\n";
@@ -142,16 +146,5 @@ void parseHeaderField(char *str) {
 
 
 
-    int rv = regcomp(&rangeRegex, "^Range"
-            "[[:blank:]]\\{0,\\}"
-            ":[[:blank:]]\\{0,\\}"
-            "bytes=[[:digit:]]\\{1,\\}-\\?", REG_ICASE);
 
-    if (rv != 0) {
-        safe_printf("regcomp failed with %d\n", rv);
-    }
-    char *sz = "Range: bytes=1--\n";
-    if (regexec(&rangeRegex, sz, MAX_MATCHES, matches, 0) == 0) {
-        //safe_printf("begin: %d end: %d",matches[0].rm_so,matches[0].rm_eo);
-    }
 }
