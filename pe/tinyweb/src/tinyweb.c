@@ -382,7 +382,7 @@ create_response_header(http_status_entry_t httpstat, char *header, char *method,
     retcode = stat(filepath, &fstat);
 
     if(S_ISDIR(fstat.st_mode)) {
-        printf("%s\n", "directory found!");
+        //printf("%s\n", "directory found!");
         char moved_permanently [50];
         strcat(filepath, "/");
         snprintf(moved_permanently, 50, "%s%s\r\n", http_header_field_list[7], filepath);
@@ -499,7 +499,16 @@ return_response(int sd, parsed_http_header_t parsed_header, prog_options_t *serv
         return create_response(sd, http_status_list[2], parsed_header.method, filepath);
     }
 
-    // TODO check for 301 und 304
+    if(parsed_header.modsince != 0) {
+        safe_printf("%d\t", parsed_header.modsince);
+        int seconds;
+        seconds = difftime(parsed_header.modsince, fstat.st_mtime);
+        safe_printf("%d\t", seconds);
+        if (seconds > 0) {
+            safe_printf("%s\n", http_status_list[3].text);
+            return create_response(sd, http_status_list[3], parsed_header.method, filepath);  
+        }
+    }
 
     return create_response(sd, http_status_list[0], parsed_header.method, filepath);
 } /* end of return_response */
@@ -543,7 +552,7 @@ handle_client(int sd, prog_options_t *server, struct sockaddr_in client)
         // IP Address
         char str[INET_ADDRSTRLEN];
         inet_ntop(AF_INET, &(client.sin_addr), str, INET_ADDRSTRLEN);
-        safe_printf("%s - - [%s] \"%s %s %s\" %d\n", str, date, parsed_header.method, parsed_header.filename, parsed_header.protocol, http_status_list[parsed_header.httpState].code);
+        //safe_printf("%s - - [%s] \"%s %s %s\" %d\n", str, date, parsed_header.method, parsed_header.filename, parsed_header.protocol, http_status_list[parsed_header.httpState].code);
 
         retcode = return_response(sd, parsed_header, server);
         if (retcode < 0) {
