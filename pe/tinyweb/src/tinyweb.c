@@ -278,13 +278,13 @@ create_response_header_string(http_header_t response_header_data, char* response
 }
 
 static int
-write_response_header(int sd, char *response_header_string) {
+write_response_header(int sd, char *response_header_string, prog_options_t *server) {
     int retcode;
 
     /*
      * write header
      */
-    retcode = write(sd, response_header_string, strlen(response_header_string));
+    retcode = write_to_socket(sd, response_header_string, strlen(response_header_string), server->timeout);
     if (retcode < 0) {
         perror("ERROR: write()");
         return -1;
@@ -294,7 +294,7 @@ write_response_header(int sd, char *response_header_string) {
 }
 
 static int
-write_response_body(int sd, char *filepath) {
+write_response_body(int sd, char *filepath, prog_options_t *server) {
     int retcode;
     int file;               /* file descriptor of requested file */
     int chunkSize = 256;    /* chunk size for write of message body */
@@ -307,7 +307,7 @@ write_response_body(int sd, char *filepath) {
         return -1;
     } /* end if */
 
-    unsigned char chunk[chunkSize];
+    char chunk[chunkSize];
     struct stat fstat;      /* file status */
     retcode = stat(filepath, &fstat);
     size_t bytesWritten = 0;
@@ -323,7 +323,7 @@ write_response_body(int sd, char *filepath) {
             return -1;
         }
 
-        writtenThisTime = write(sd, chunk, readThisTime);
+        writtenThisTime = write_to_socket(sd, chunk, readThisTime, server->timeout);
         if (writtenThisTime == -1) {
             return -1;
         }
@@ -373,7 +373,7 @@ handle_client(int sd, prog_options_t *server, struct sockaddr_in client)
             safe_printf("%s\n", "not implemented");
             response_header_data.status = http_status_list[9];
             create_response_header_string(response_header_data, server_header);
-            return write_response_header(sd, server_header);
+            return write_response_header(sd, server_header, server);
         default:
             break;
     }
@@ -397,13 +397,13 @@ handle_client(int sd, prog_options_t *server, struct sockaddr_in client)
         response_header_data.status = http_status_list[0];
         create_response_header(filepath, response_header_data, fstat);
         create_response_header_string(response_header_data, server_header);
-        write_response_header(sd, server_header);
-        return write_response_body(sd, filepath);
+        write_response_header(sd, server_header, server);
+        return write_response_body(sd, filepath, server);
     } else { /* HEAD method */
         safe_printf("%s\n", "HEAD");
         response_header_data.status = http_status_list[0];
         create_response_header_string(response_header_data, server_header);
-        return write_response_header(sd, server_header);
+        return write_response_header(sd, server_header, server);
     }
 
     return retcode;
