@@ -376,7 +376,8 @@ handle_client(int sd, prog_options_t *server, struct sockaddr_in client)
     parsed_http_header_t parsed_header;
     http_header_t response_header_data = { 
         .status = http_status_list[8], 
-        .date = NULL, .server = NULL, 
+        .date = NULL, 
+        .server = NULL, 
         .last_modified = NULL, 
         .content_length = NULL, 
         .content_type = NULL, 
@@ -408,9 +409,6 @@ handle_client(int sd, prog_options_t *server, struct sockaddr_in client)
 
     //TODO check CGI
     //TODO Partial Content
-    if(parsed_header.isCGI){
-        
-    }
 
     strcpy(filepath, server->root_dir);
     strcat(filepath, parsed_header.filename);
@@ -419,7 +417,25 @@ handle_client(int sd, prog_options_t *server, struct sockaddr_in client)
 
     retcode = stat(filepath, &fstat);
     if(retcode) {
-        perror("ERROR: stat"); 
+        perror("ERROR: stat");
+    }
+
+    /*
+    if (!(S_ISREG(fstat.st_mode))) {
+        safe_printf("%s\n", "directory found");
+        response_header_data.status = http_status_list[6];
+        create_response_header_string(response_header_data, server_header);
+        return write_response_header(sd, server_header, server);
+    } else if () {
+
+    }
+    */
+
+    if (S_ISDIR(fstat.st_mode)) {
+        response_header_data.status = http_status_list[2];
+        snprintf(response_header_data.content_location, BUFSIZE, "%s%s%s\r\n", http_header_field_list[7], filepath, "/");
+        create_response_header_string(response_header_data, server_header);
+        return write_response_header(sd, server_header, server);
     }
 
     // check on parsed http method
