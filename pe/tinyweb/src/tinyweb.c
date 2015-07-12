@@ -302,7 +302,7 @@ write_response_body(int sd, char *filepath, prog_options_t *server) {
     size_t bytesWritten = 0;
     size_t bytesToWrite = fstat.st_size;
 
-    while (bytesWritten != bytesToWrite) {
+    while (bytesWritten < bytesToWrite) {
         size_t writtenThisTime;
         size_t readThisTime;
 
@@ -312,7 +312,7 @@ write_response_body(int sd, char *filepath, prog_options_t *server) {
             return -1;
         }
 
-        writtenThisTime = write_to_socket(sd, chunk, readThisTime, server->timeout);
+        writtenThisTime = write(sd, chunk, readThisTime);
         if (writtenThisTime == -1) {
             return -1;
         }
@@ -350,6 +350,10 @@ create_response_header_string(http_header_t response_header_data, char* response
     strftime(timeString, 80, "%a, %d %b %Y %H:%M:%S", timeinfo);
     snprintf(date, 50, "%s%s\r\n", http_header_field_list[0], timeString);
     strcat(response_header_string, date);
+
+    if(response_header_data.content_length != NULL) {
+        strcat(response_header_string, response_header_data.content_length);
+    }
 
     // end header
     strcat(response_header_string, "\r\n");
@@ -433,6 +437,10 @@ handle_client(int sd, prog_options_t *server, struct sockaddr_in client)
         create_response_header_string(response_header_data, server_header);
         return write_response_header(sd, server_header, server);
     }
+
+    response_header_data.status = http_status_list[8];
+    create_response_header_string(response_header_data, server_header);
+    return write_response_header(sd, server_header, server);
 
     return retcode;
 } /* end of handle_client */
