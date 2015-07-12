@@ -427,17 +427,17 @@ handle_client(int sd, prog_options_t *server, struct sockaddr_in client) {
     //TODO HTTP_RANGE_NOT_SATISFIABLE handeln
     switch (parsed_header.httpState) {
         case HTTP_STATUS_INTERNAL_SERVER_ERROR:
-            safe_printf("%s\n", "internal server error");
+            //safe_printf("%s\n", "internal server error");
             response_header_data.status = http_status_list[8];
             create_response_header_string(response_header_data, server_header);
             return write_response_header(sd, server_header, server);
         case HTTP_STATUS_BAD_REQUEST:
-            safe_printf("%s\n", "bad request");
+            //safe_printf("%s\n", "bad request");
             response_header_data.status = http_status_list[4];
             create_response_header_string(response_header_data, server_header);
             return write_response_header(sd, server_header, server);
         case HTTP_STATUS_NOT_IMPLEMENTED:
-            safe_printf("%s\n", "not implemented");
+            //safe_printf("%s\n", "not implemented");
             response_header_data.status = http_status_list[9];
             create_response_header_string(response_header_data, server_header);
             return write_response_header(sd, server_header, server);
