@@ -40,8 +40,7 @@ static volatile sig_atomic_t server_running = false;
 #define IS_ROOT_DIR(mode)   (S_ISDIR(mode) && ((S_IROTH || S_IXOTH) & (mode)))
 
 static int
-get_options(int argc, char *argv[], prog_options_t *opt) 
-{
+get_options(int argc, char *argv[], prog_options_t *opt) {
     int c;
     int err;
     int success = 1;
@@ -138,8 +137,7 @@ get_options(int argc, char *argv[], prog_options_t *opt)
 } /* end of get_options */
 
 static void
-print_usage(const char *progname) 
-{
+print_usage(const char *progname) {
     fprintf(stderr, "Usage: %s options\n%s%s%s%s", progname,
             "\t-d\tthe directory of web files\n",
             "\t-f\tthe logfile (if '-' or option not set; logging will be redirected to stdout\n",
@@ -148,8 +146,7 @@ print_usage(const char *progname)
 } /* end of print_usage */
 
 static void
-open_logfile(prog_options_t *opt) 
-{
+open_logfile(prog_options_t *opt) {
     // open logfile or redirect to stdout
     if (opt->log_filename != NULL && strcmp(opt->log_filename, "-") != 0) {
         opt->log_fd = fopen(opt->log_filename, "w");
@@ -164,8 +161,7 @@ open_logfile(prog_options_t *opt)
 } /* end of open_logfile */
 
 static void
-check_root_dir(prog_options_t *opt) 
-{
+check_root_dir(prog_options_t *opt) {
     struct stat stat_buf;
 
     // check whether root directory is accessible
@@ -180,8 +176,7 @@ check_root_dir(prog_options_t *opt)
 } /* end of check_root_dir */
 
 static void
-sig_handler(int sig) 
-{
+sig_handler(int sig) {
     int status;
     switch (sig) {
         case SIGINT:
@@ -203,8 +198,7 @@ sig_handler(int sig)
 } /* end of sig_handler */
 
 static void
-install_signal_handlers(void) 
-{
+install_signal_handlers(void) {
     struct sigaction sa;
 
     // init signal handler(s)
@@ -224,8 +218,7 @@ install_signal_handlers(void)
  * @return  the socket descriptor
  */
 int
-create_server_socket(prog_options_t *server) 
-{
+create_server_socket(prog_options_t *server) {
     int sfd; /* socket file descriptor */
     int retcode; /* return code from bind */
     const int on = 1; /* used to set socket option */
@@ -285,8 +278,8 @@ write_response_header(int sd, char *response_header_string, prog_options_t *serv
 static int
 write_response_body(int sd, char *filepath, prog_options_t *server) {
     int retcode;
-    int file;               /* file descriptor of requested file */
-    int chunkSize = 256;    /* chunk size for write of message body */
+    int file; /* file descriptor of requested file */
+    int chunkSize = 256; /* chunk size for write of message body */
 
     safe_printf("%s\n", filepath);
 
@@ -297,7 +290,7 @@ write_response_body(int sd, char *filepath, prog_options_t *server) {
     } /* end if */
 
     char chunk[chunkSize];
-    struct stat fstat;      /* file status */
+    struct stat fstat; /* file status */
     retcode = stat(filepath, &fstat);
     size_t bytesWritten = 0;
     size_t bytesToWrite = fstat.st_size;
@@ -308,7 +301,7 @@ write_response_body(int sd, char *filepath, prog_options_t *server) {
 
         readThisTime = read(file, chunk, chunkSize);
 
-        if(readThisTime < 0) {
+        if (readThisTime < 0) {
             return -1;
         }
 
@@ -325,8 +318,33 @@ write_response_body(int sd, char *filepath, prog_options_t *server) {
 
 static int
 create_response_header(char *filepath, http_header_t response_header_data, struct stat fstat) {
-    // content-length
-    snprintf(response_header_data.content_length, 30, "%s%lld\r\n", http_header_field_list[3], (long long)fstat.st_size);
+    safe_printf("create response header");
+    // content-length, content type, und last modified
+    int size = strlen(http_header_field_list[3]) + sizeof (long long) +strlen("\r\n") + 1;
+    response_header_data.content_length = malloc(size);
+    snprintf(response_header_data.content_length, size, "%s%lld\r\n", http_header_field_list[3], (long long) fstat.st_size);
+    safe_printf("create response header");
+    safe_printf("Content length: %s\n", response_header_data.content_length);
+
+    // content-type
+    char *content_type_str;
+    http_content_type_t content_type;
+    content_type = get_http_content_type(filepath);
+    content_type_str = get_http_content_type_str(content_type);
+    size = strlen(http_header_field_list[4]) + strlen(content_type_str) + strlen("\r\n") + 1;
+    response_header_data.content_type = malloc(size);
+    snprintf(response_header_data.content_type, size, "%s%s\r\n", http_header_field_list[4], content_type_str);
+    //snprintf(response_header_data.last_modified)
+    safe_printf("Content Type: %s\n", response_header_data.content_type);
+
+    struct tm * timeinfo;
+    char timeString[80];
+    timeinfo = localtime(&fstat.st_mtime);
+    strftime(timeString, 80, "%a, %d %b %Y %H:%M:%S GMT", timeinfo);
+    size = strlen(http_header_field_list[2]) + strlen(timeString) + strlen("\r\n") + 1;
+    response_header_data.last_modified = malloc(size);
+    snprintf(response_header_data.last_modified, size, "%s%s\r\n", http_header_field_list[2], timeString);
+    safe_printf("Last modified: %s\n", response_header_data.last_modified);
     return 0;
 }
 
@@ -334,12 +352,12 @@ static int
 create_response_header_string(http_header_t response_header_data, char* response_header_string) {
     // status
     snprintf(response_header_string, 50, "%s %hu %s\r\n", "HTTP/1.1", response_header_data.status.code, response_header_data.status.text);
-    
+
     // server
     char server[30];
     snprintf(server, 30, "%s%s\r\n", http_header_field_list[1], "Tinyweb 1.1");
     strcat(response_header_string, server);
-    
+
     // date
     char timeString [80];
     char date [50];
@@ -351,13 +369,22 @@ create_response_header_string(http_header_t response_header_data, char* response
     snprintf(date, 50, "%s%s\r\n", http_header_field_list[0], timeString);
     strcat(response_header_string, date);
 
-    if(response_header_data.content_length != NULL) {
+    if (response_header_data.content_length != NULL) {
+        //content length
+        strcat(response_header_string, response_header_data.content_length);
+    }
+    if (response_header_data.content_type != NULL) {
+        //content type
+        strcat(response_header_string, response_header_data.content_length);
+    }
+    if (response_header_data.content_length != NULL) {
+        //last modified
         strcat(response_header_string, response_header_data.content_length);
     }
 
     // end header
     strcat(response_header_string, "\r\n");
-    safe_printf(response_header_string);
+    safe_printf("Response Header\n%s\n\n",response_header_string);
     return 0;
 }
 
@@ -368,31 +395,31 @@ create_response_header_string(http_header_t response_header_data, char* response
  * @return  on error -1 is returned
  */
 static int
-handle_client(int sd, prog_options_t *server, struct sockaddr_in client) 
-{
+handle_client(int sd, prog_options_t *server, struct sockaddr_in client) {
     int BUFSIZE = 1000;
     char client_header[BUFSIZE];
     char server_header[BUFSIZE];
     parsed_http_header_t parsed_header;
-    http_header_t response_header_data = { 
-        .status = http_status_list[8], 
-        .date = NULL, .server = NULL, 
-        .last_modified = NULL, 
-        .content_length = NULL, 
-        .content_type = NULL, 
-        .connection = NULL, 
-        .accept_ranges = NULL, 
-        .content_location = NULL };
+    http_header_t response_header_data = {
+        .status = http_status_list[8],
+        .date = NULL, .server = NULL,
+        .last_modified = NULL,
+        .content_length = NULL,
+        .content_type = NULL,
+        .connection = NULL,
+        .accept_ranges = NULL,
+        .content_location = NULL
+    };
     int retcode = 0;
-    char filepath[BUFSIZE];     /* path to requested file */
-    struct stat fstat;          /* file status */
+    char filepath[BUFSIZE]; /* path to requested file */
+    struct stat fstat; /* file status */
 
     read_from_socket(sd, client_header, BUFSIZE, server->timeout);
     parsed_header = parse_http_header(client_header);
 
     // check on parsed http status
     //TODO HTTP_RANGE_NOT_SATISFIABLE handeln
-    switch(parsed_header.httpState) {
+    switch (parsed_header.httpState) {
         case HTTP_STATUS_INTERNAL_SERVER_ERROR:
             safe_printf("%s\n", "internal server error");
         case HTTP_STATUS_BAD_REQUEST:
@@ -408,8 +435,8 @@ handle_client(int sd, prog_options_t *server, struct sockaddr_in client)
 
     //TODO check CGI
     //TODO Partial Content
-    if(parsed_header.isCGI){
-        
+    if (parsed_header.isCGI) {
+
     }
 
     strcpy(filepath, server->root_dir);
@@ -418,8 +445,8 @@ handle_client(int sd, prog_options_t *server, struct sockaddr_in client)
     safe_printf("%s\n", filepath);
 
     retcode = stat(filepath, &fstat);
-    if(retcode) {
-        perror("ERROR: stat"); 
+    if (retcode) {
+        perror("ERROR: stat");
     }
 
     // check on parsed http method
@@ -452,15 +479,14 @@ handle_client(int sd, prog_options_t *server, struct sockaddr_in client)
  * @return          unequal zero in case of error
  */
 static int
-accept_client(int sd, prog_options_t *server) 
-{
-    
+accept_client(int sd, prog_options_t *server) {
+
     signal(SIGCHLD, sig_handler);
-    
-    int nsd;                    /* new socket descriptor */
-    pid_t pid;                  /* process id */
-    int retcode;                /* return code */
-    struct sockaddr_in client;  /* the input sockaddr */
+
+    int nsd; /* new socket descriptor */
+    pid_t pid; /* process id */
+    int retcode; /* return code */
+    struct sockaddr_in client; /* the input sockaddr */
     socklen_t client_len = sizeof (client); /* the length of it */
 
     /*
@@ -488,7 +514,7 @@ accept_client(int sd, prog_options_t *server)
         } /* end if */
         // TODO: muss man hier sd vom Kind schließen?!
         exit(EXIT_SUCCESS);
-    } else if (pid > 0) { 
+    } else if (pid > 0) {
         /* 
          * parent process 
          */
@@ -496,7 +522,7 @@ accept_client(int sd, prog_options_t *server)
         if (retcode < 0) {
             perror("ERROR: parent close()");
         } /* end if */
-    } else { 
+    } else {
         /* 
          * error while forking 
          */
