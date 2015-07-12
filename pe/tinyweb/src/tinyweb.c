@@ -430,6 +430,9 @@ handle_client(int sd, prog_options_t *server, struct sockaddr_in client) {
             safe_printf("%s\n", "internal server error");
         case HTTP_STATUS_BAD_REQUEST:
             safe_printf("%s\n", "bad request");
+            response_header_data.status = http_status_list[4];
+            create_response_header_string(response_header_data, server_header);
+            return write_response_header(sd, server_header, server);
         case HTTP_STATUS_NOT_IMPLEMENTED:
             safe_printf("%s\n", "not implemented");
             response_header_data.status = http_status_list[9];
