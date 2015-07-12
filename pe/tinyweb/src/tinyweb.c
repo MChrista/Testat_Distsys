@@ -460,7 +460,11 @@ handle_client(int sd, prog_options_t *server, struct sockaddr_in client) {
     }
     */
     // check for 404, 304, 301
-    if (S_ISDIR(fstat.st_mode)) {
+    if (!(S_ISREG(fstat.st_mode))) { /* 404 */
+        response_header_data.status = http_status_list[6];
+        create_response_header_string(response_header_data, server_header);
+        return write_response_header(sd, server_header, server);
+    } else if (S_ISDIR(fstat.st_mode)) { /* 304 */
         response_header_data.status = http_status_list[2];
         int size = strlen(http_header_field_list[7]) + strlen(filepath) + strlen("/\r\n") + 1;
         response_header_data.content_location = malloc(size);
