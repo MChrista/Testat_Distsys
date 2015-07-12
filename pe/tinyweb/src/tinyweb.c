@@ -267,17 +267,6 @@ create_server_socket(prog_options_t *server)
 } /* end of create_server_socket */
 
 static int
-create_response_header_string(http_header_t response_header_data, char* response_header_string) {
-    snprintf(response_header_string, 50, "%s %hu %s\r\n", "HTTP/1.1", response_header_data.status.code, response_header_data.status.text);
-    if(response_header_data.last_modified != NULL) {
-        //snprintf();
-    }
-    strcat(response_header_string, "\r\n");
-    safe_printf(response_header_string);
-    return 0;
-}
-
-static int
 write_response_header(int sd, char *response_header_string, prog_options_t *server) {
     int retcode;
 
@@ -341,6 +330,33 @@ create_response_header(char *filepath, http_header_t response_header_data, struc
     return 0;
 }
 
+static int
+create_response_header_string(http_header_t response_header_data, char* response_header_string) {
+    // status
+    snprintf(response_header_string, 50, "%s %hu %s\r\n", "HTTP/1.1", response_header_data.status.code, response_header_data.status.text);
+    
+    // server
+    char server[30];
+    snprintf(server, 30, "%s%s\r\n", http_header_field_list[1], "Tinyweb 1.1");
+    strcat(response_header_string, server);
+    
+    // date
+    char timeString [80];
+    char date [50];
+    time_t rawtime;
+    struct tm * timeinfo;
+    time(&rawtime);
+    timeinfo = localtime(&rawtime);
+    strftime(timeString, 80, "%a, %d %b %Y %H:%M:%S", timeinfo);
+    snprintf(date, 50, "%s%s\r\n", http_header_field_list[0], timeString);
+    strcat(response_header_string, date);
+
+    // end header
+    strcat(response_header_string, "\r\n");
+    safe_printf(response_header_string);
+    return 0;
+}
+
 /**
  * Handle clients.
  * @param   the socket descriptor to read on
@@ -354,10 +370,18 @@ handle_client(int sd, prog_options_t *server, struct sockaddr_in client)
     char client_header[BUFSIZE];
     char server_header[BUFSIZE];
     parsed_http_header_t parsed_header;
-    http_header_t response_header_data;
+    http_header_t response_header_data = { 
+        .status = http_status_list[8], 
+        .date = NULL, .server = NULL, 
+        .last_modified = NULL, 
+        .content_length = NULL, 
+        .content_type = NULL, 
+        .connection = NULL, 
+        .accept_ranges = NULL, 
+        .content_location = NULL };
     int retcode = 0;
     char filepath[BUFSIZE];     /* path to requested file */
-    struct stat fstat; /* file status */
+    struct stat fstat;          /* file status */
 
     read_from_socket(sd, client_header, BUFSIZE, server->timeout);
     parsed_header = parse_http_header(client_header);
@@ -390,6 +414,9 @@ handle_client(int sd, prog_options_t *server, struct sockaddr_in client)
     safe_printf("%s\n", filepath);
 
     retcode = stat(filepath, &fstat);
+    if(retcode) {
+        perror("ERROR: stat"); 
+    }
 
     // check on parsed http method
     if (strcmp(parsed_header.method, "GET") == 0) { /* GET method */
@@ -402,6 +429,7 @@ handle_client(int sd, prog_options_t *server, struct sockaddr_in client)
     } else { /* HEAD method */
         safe_printf("%s\n", "HEAD");
         response_header_data.status = http_status_list[0];
+        create_response_header(filepath, response_header_data, fstat);
         create_response_header_string(response_header_data, server_header);
         return write_response_header(sd, server_header, server);
     }
