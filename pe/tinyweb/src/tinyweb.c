@@ -269,6 +269,10 @@ create_server_socket(prog_options_t *server)
 static int
 create_response_header_string(http_header_t response_header_data, char* response_header_string) {
     snprintf(response_header_string, 50, "%s %hu %s\r\n", "HTTP/1.1", response_header_data.status.code, response_header_data.status.text);
+    if(response_header_data.last_modified != NULL) {
+        //snprintf();
+    }
+    strcat(response_header_string, "\r\n");
     safe_printf(response_header_string);
     return 0;
 }
@@ -330,6 +334,13 @@ write_response_body(int sd, char *filepath) {
     return retcode;
 }
 
+static int
+create_response_header(char *filepath, http_header_t response_header_data, struct stat fstat) {
+    // content-length
+    snprintf(response_header_data.content_length, 30, "%s%lld\r\n", http_header_field_list[3], (long long)fstat.st_size);
+    return 0;
+}
+
 /**
  * Handle clients.
  * @param   the socket descriptor to read on
@@ -345,7 +356,8 @@ handle_client(int sd, prog_options_t *server, struct sockaddr_in client)
     parsed_http_header_t parsed_header;
     http_header_t response_header_data;
     int retcode = 0;
-    char *filepath;     /* path to requested file */
+    char filepath[BUFSIZE];     /* path to requested file */
+    struct stat fstat; /* file status */
 
     read_from_socket(sd, client_header, BUFSIZE, server->timeout);
     parsed_header = parse_http_header(client_header);
@@ -365,26 +377,28 @@ handle_client(int sd, prog_options_t *server, struct sockaddr_in client)
         default:
             break;
     }
-    // check on parsed http method
+
     //TODO check CGI
     //TODO Partial Content
     if(parsed_header.isCGI){
         
-    }else if (strcmp(parsed_header.method, "GET") == 0) { /* GET method */
+    }
+
+    strcpy(filepath, server->root_dir);
+    strcat(filepath, parsed_header.filename);
+    //snprintf(filepath, BUFSIZE, "%s%s", server->root_dir, parsed_header.filename);
+    safe_printf("%s\n", filepath);
+
+    retcode = stat(filepath, &fstat);
+
+    // check on parsed http method
+    if (strcmp(parsed_header.method, "GET") == 0) { /* GET method */
         safe_printf("%s\n", "GET");
-        // path to folder + filename
-        filepath = malloc(strlen(parsed_header.filename) + strlen(server->root_dir) + 1);
-        if (filepath == NULL) {
-            perror("ERROR: malloc()");
-            return -1;
-        }
-        memset(filepath, 0, strlen(filepath));
-        strcpy(filepath, server->root_dir);
-        strcat(filepath, parsed_header.filename);
         response_header_data.status = http_status_list[0];
+        create_response_header(filepath, response_header_data, fstat);
         create_response_header_string(response_header_data, server_header);
         write_response_header(sd, server_header);
-        return write_response_body(sd, parsed_header.filename);
+        return write_response_body(sd, filepath);
     } else { /* HEAD method */
         safe_printf("%s\n", "HEAD");
         response_header_data.status = http_status_list[0];
