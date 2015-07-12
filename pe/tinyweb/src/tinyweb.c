@@ -469,6 +469,16 @@ handle_client(int sd, prog_options_t *server, struct sockaddr_in client) {
         return write_response_header(sd, server_header, server);
     }
 
+    if(parsed_header.modsince != 0) { /* 304 */
+        int seconds;
+        seconds = difftime(parsed_header.modsince, fstat.st_mtime);
+        if (seconds > 0) {
+            response_header_data.status = http_status_list[3];
+            create_response_header_string(response_header_data, server_header);
+            return write_response_header(sd, server_header, server);
+        }
+    }
+
     // check on parsed http method
     if (strcmp(parsed_header.method, "GET") == 0) { /* GET method */
         safe_printf("%s\n", "GET");
