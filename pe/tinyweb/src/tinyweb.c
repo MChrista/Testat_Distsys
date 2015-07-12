@@ -317,14 +317,12 @@ write_response_body(int sd, char *filepath, prog_options_t *server) {
 }
 
 static int
-create_response_header(char *filepath, http_header_t response_header_data, struct stat fstat) {
-    safe_printf("create response header");
+create_response_header(char *filepath, http_header_t *response_header_data, struct stat fstat) {
     // content-length, content type, und last modified
     int size = strlen(http_header_field_list[3]) + sizeof (long long) +strlen("\r\n") + 1;
-    response_header_data.content_length = malloc(size);
-    snprintf(response_header_data.content_length, size, "%s%lld\r\n", http_header_field_list[3], (long long) fstat.st_size);
-    safe_printf("create response header");
-    safe_printf("Content length: %s\n", response_header_data.content_length);
+    response_header_data->content_length = malloc(size);
+    snprintf(response_header_data->content_length, size, "%s%lld\r\n", http_header_field_list[3], (long long) fstat.st_size);
+    safe_printf("Content length: %s\n", response_header_data->content_length);
 
     // content-type
     char *content_type_str;
@@ -332,19 +330,19 @@ create_response_header(char *filepath, http_header_t response_header_data, struc
     content_type = get_http_content_type(filepath);
     content_type_str = get_http_content_type_str(content_type);
     size = strlen(http_header_field_list[4]) + strlen(content_type_str) + strlen("\r\n") + 1;
-    response_header_data.content_type = malloc(size);
-    snprintf(response_header_data.content_type, size, "%s%s\r\n", http_header_field_list[4], content_type_str);
+    response_header_data->content_type = malloc(size);
+    snprintf(response_header_data->content_type, size, "%s%s\r\n", http_header_field_list[4], content_type_str);
     //snprintf(response_header_data.last_modified)
-    safe_printf("Content Type: %s\n", response_header_data.content_type);
+    safe_printf("Content Type: %s\n", response_header_data->content_type);
 
     struct tm * timeinfo;
     char timeString[80];
     timeinfo = localtime(&fstat.st_mtime);
     strftime(timeString, 80, "%a, %d %b %Y %H:%M:%S GMT", timeinfo);
     size = strlen(http_header_field_list[2]) + strlen(timeString) + strlen("\r\n") + 1;
-    response_header_data.last_modified = malloc(size);
-    snprintf(response_header_data.last_modified, size, "%s%s\r\n", http_header_field_list[2], timeString);
-    safe_printf("Last modified: %s\n", response_header_data.last_modified);
+    response_header_data->last_modified = malloc(size);
+    snprintf(response_header_data->last_modified, size, "%s%s\r\n", http_header_field_list[2], timeString);
+    safe_printf("Last modified: %s\n", response_header_data->last_modified);
     return 0;
 }
 
@@ -353,6 +351,7 @@ create_response_header_string(http_header_t response_header_data, char* response
     // status
     snprintf(response_header_string, 50, "%s %hu %s\r\n", "HTTP/1.1", response_header_data.status.code, response_header_data.status.text);
 
+    safe_printf("\n\nResponse header einstieg: %s\n", response_header_string);
     // server
     char server[30];
     snprintf(server, 30, "%s%s\r\n", http_header_field_list[1], "Tinyweb 1.1");
@@ -368,20 +367,24 @@ create_response_header_string(http_header_t response_header_data, char* response
     strftime(timeString, 80, "%a, %d %b %Y %H:%M:%S", timeinfo);
     snprintf(date, 50, "%s%s\r\n", http_header_field_list[0], timeString);
     strcat(response_header_string, date);
-
+    safe_printf("\n\nResponse header date: \n%s\n", response_header_string);
+    safe_printf("Content length: %s\n", response_header_data.content_length);
     if (response_header_data.content_length != NULL) {
         //content length
         strcat(response_header_string, response_header_data.content_length);
+        safe_printf("content length\n", response_header_string);
     }
     if (response_header_data.content_type != NULL) {
         //content type
-        strcat(response_header_string, response_header_data.content_length);
+        strcat(response_header_string, response_header_data.content_type);
+        safe_printf("content type\n", response_header_string);
     }
-    if (response_header_data.content_length != NULL) {
+    if (response_header_data.last_modified != NULL) {
         //last modified
-        strcat(response_header_string, response_header_data.content_length);
+        strcat(response_header_string, response_header_data.last_modified);
+        safe_printf("last modified\n", response_header_string);
     }
-
+    safe_printf("\n\nResponse header end: %s\n", response_header_string);
     // end header
     strcat(response_header_string, "\r\n");
     safe_printf("Response Header\n%s\n\n",response_header_string);
@@ -477,14 +480,14 @@ handle_client(int sd, prog_options_t *server, struct sockaddr_in client) {
     if (strcmp(parsed_header.method, "GET") == 0) { /* GET method */
         safe_printf("%s\n", "GET");
         response_header_data.status = http_status_list[0];
-        create_response_header(filepath, response_header_data, fstat);
+        create_response_header(filepath, &response_header_data, fstat);
         create_response_header_string(response_header_data, server_header);
         write_response_header(sd, server_header, server);
         return write_response_body(sd, filepath, server);
     } else { /* HEAD method */
         safe_printf("%s\n", "HEAD");
         response_header_data.status = http_status_list[0];
-        create_response_header(filepath, response_header_data, fstat);
+        create_response_header(filepath, &response_header_data, fstat);
         create_response_header_string(response_header_data, server_header);
         return write_response_header(sd, server_header, server);
     }
