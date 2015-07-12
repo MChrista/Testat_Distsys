@@ -428,6 +428,9 @@ handle_client(int sd, prog_options_t *server, struct sockaddr_in client) {
     switch (parsed_header.httpState) {
         case HTTP_STATUS_INTERNAL_SERVER_ERROR:
             safe_printf("%s\n", "internal server error");
+            response_header_data.status = http_status_list[8];
+            create_response_header_string(response_header_data, server_header);
+            return write_response_header(sd, server_header, server);
         case HTTP_STATUS_BAD_REQUEST:
             safe_printf("%s\n", "bad request");
             response_header_data.status = http_status_list[4];
@@ -444,6 +447,8 @@ handle_client(int sd, prog_options_t *server, struct sockaddr_in client) {
 
     //TODO check CGI
     //TODO Partial Content
+    //TODO 500 bei kind abschuss und bei negativem return wert von handle_client
+    //TODO logging
     if (parsed_header.isCGI) {
 
     }

@@ -2,7 +2,7 @@
 
 # hello.pl -- my first perl script!
 
-print "Content-type: text/html\n\n";
+print "Content-type: text/html\r\n\r\n";
 
 print <<"EOF";
 <HTML>
