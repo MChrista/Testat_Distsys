@@ -467,12 +467,10 @@ handle_client(int sd, prog_options_t *server, struct sockaddr_in client) {
         snprintf(response_header_data.content_location, BUFSIZE, "%s%s%s\r\n", http_header_field_list[7], filepath, "/");
         create_response_header_string(response_header_data, server_header);
         return write_response_header(sd, server_header, server);
-    }
-
-    if(parsed_header.modsince != 0) { /* 304 */
+    } else if(parsed_header.modsince != 0) { /* 304 */
         int seconds;
         seconds = difftime(parsed_header.modsince, fstat.st_mtime);
-        if (seconds > 0) {
+        if (seconds >= 0) {
             response_header_data.status = http_status_list[3];
             create_response_header_string(response_header_data, server_header);
             return write_response_header(sd, server_header, server);
