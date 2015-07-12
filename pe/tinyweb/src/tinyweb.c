@@ -384,6 +384,9 @@ create_response_header_string(http_header_t response_header_data, char* response
         strcat(response_header_string, response_header_data.last_modified);
         safe_printf("last modified\n", response_header_string);
     }
+    if (response_header_data.content_location != NULL) {
+        strcat(response_header_string, response_header_data.content_location);
+    }
     safe_printf("\n\nResponse header end: %s\n", response_header_string);
     // end header
     strcat(response_header_string, "\r\n");
@@ -452,22 +455,12 @@ handle_client(int sd, prog_options_t *server, struct sockaddr_in client) {
         perror("ERROR: stat");
     }
 
-    /*
-    if (!(S_ISREG(fstat.st_mode))) {
-        safe_printf("%s\n", "directory found");
-        response_header_data.status = http_status_list[6];
-        create_response_header_string(response_header_data, server_header);
-        return write_response_header(sd, server_header, server);
-    } else if () {
-
-    }
-    */
     // check for 404, 304, 301
-    if (!(S_ISREG(fstat.st_mode))) { /* 404 */
+    if (!(S_ISREG(fstat.st_mode)) && !(S_ISDIR(fstat.st_mode))) { /* 404 */
         response_header_data.status = http_status_list[6];
         create_response_header_string(response_header_data, server_header);
         return write_response_header(sd, server_header, server);
-    } else if (S_ISDIR(fstat.st_mode)) { /* 304 */
+    } else if (S_ISDIR(fstat.st_mode)) { /* 301 */
         response_header_data.status = http_status_list[2];
         int size = strlen(http_header_field_list[7]) + strlen(filepath) + strlen("/\r\n") + 1;
         response_header_data.content_location = malloc(size);
