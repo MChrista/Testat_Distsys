@@ -1,3 +1,5 @@
+#define __USE_XOPEN
+#define _GNU_SOURCE
 #include <stdio.h>
 #include <time.h>
 #include <sys/types.h>
@@ -21,6 +23,7 @@
 #include <ctype.h>
 #include <signal.h>
 #include <getopt.h>
+#include <fcntl.h>
 
 #include "tinyweb.h"
 #include "connect_tcp.h"
@@ -528,6 +531,7 @@ handle_client(int sd, prog_options_t *server, struct sockaddr_in client) {
         if (fstat.st_mode & S_IEXEC) {
             if (pipe(link) == -1) {
                 safe_printf("Die pipe\n");
+                exit(EXIT_FAILURE);
             }
             pid = fork();
             if (pid == 0) {
@@ -538,8 +542,11 @@ handle_client(int sd, prog_options_t *server, struct sockaddr_in client) {
                 dup2(link[1], STDOUT_FILENO);
                 close(link[0]);
                 close(link[1]);
-                execl("/etc/", "ls", "-1", (char *) 0);
-                exit(0);
+                //TODO: Change Path
+                execle("/bin/sh", "sh", "-c", "./web/cgi-bin/hello.pl", NULL, NULL);
+                //execle("/bin/sh", "sh", "-c", cCgiCommand_p, (char) NULL, (char) NULL);
+                //execl("/usr/bin/who", "who", NULL);
+                exit(EXIT_SUCCESS);
 
                 //exit(EXIT_SUCCESS);
             } else if (pid > 0) {
@@ -551,19 +558,38 @@ handle_client(int sd, prog_options_t *server, struct sockaddr_in client) {
                 close(link[1]);
                 int nbytes = read(link[0], foo, sizeof (foo));
                 safe_printf("Output: (%.*s)\n", nbytes, foo);
+                /*
+                 * TODO
+                 * In foo steht das Ergebnis
+                 * HTTP 200
+                 * text/HTML
+                 * Reichen die Header Felder
+                 * Check wait for success
+                 */
+
                 wait(NULL);
-                safe_printf("Kind ist fertig\n");
+                response_header_data.status = http_status_list[0];
+                response_header_data.content_length = (char *)strlen(foo);
+                response_header_data.content_type = "text/html";
+                create_response_header_string(response_header_data, server_header);
+                write_response_header(sd, server_header, server);
+                if (write(sd, foo, strlen(foo) - 1) < 0) {
+                    printf("%s\n", "Writing to the client went wrong!");
+                }
+                //exit(EXIT_SUCCESS);
             } else {
                 /* 
                  * error while forking 
                  */
                 safe_printf("ERROR: fork()");
+                exit(EXIT_FAILURE);
             }
         } else { /* 403 */
             safe_printf("Not executable\n");
             response_header_data.status = http_status_list[5];
             create_response_header_string(response_header_data, server_header);
             return write_response_header(sd, server_header, server);
+            exit(EXIT_FAILURE);
         }
 
 
