@@ -97,7 +97,7 @@ sub connect_to_server {
         #--------------------------------------------------
         # Subtest: HTTP Status is as expected
         #--------------------------------------------------
-        like($res->status_line, qr/^$ref->{status}/, "Status") or skip "Skip header tests", 6;
+        like($res->status_line, qr/^$ref->{status}/, "Status");
 
         #--------------------------------------------------
         # Subtest: Date and time is correct
