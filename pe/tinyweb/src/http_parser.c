@@ -45,6 +45,8 @@ parse_http_header(char *header) {
     parsed_header.httpState = HTTP_STATUS_INTERNAL_SERVER_ERROR;
     parsed_header.modsince = 0;
     parsed_header.isCGI = FALSE;
+    parsed_header.byteStart = -2;
+    parsed_header.byteEnd = -2;
 
     char delimiter[] = " ";
     char *pointer;
@@ -169,10 +171,10 @@ parse_http_header(char *header) {
                     if (startValue == -1 && endValue > 0) {
                         parsed_header.httpState = HTTP_STATUS_PARTIAL_CONTENT;
                         safe_printf("Partial Content\n");
-                    } else if (startValue > 0 && endValue == -1) {
+                    } else if (startValue >= 0 && endValue == -1) {
                         parsed_header.httpState = HTTP_STATUS_PARTIAL_CONTENT;
                         safe_printf("Partial Content\n");
-                    } else if (startValue > 0 && endValue > 0 && startValue < endValue) {
+                    } else if (startValue >= 0 && endValue > 0 && startValue < endValue) {
                         parsed_header.httpState = HTTP_STATUS_PARTIAL_CONTENT;
                         safe_printf("Partial Content\n");
                     }

@@ -276,7 +276,7 @@ write_response_header(int sd, char *response_header_string, prog_options_t *serv
 }
 
 static int
-write_response_body(int sd, char *filepath, prog_options_t *server) {
+write_response_body(int sd, char *filepath, prog_options_t *server, int start, int end) {
     int retcode;
     int file; /* file descriptor of requested file */
     int chunkSize = 256; /* chunk size for write of message body */
@@ -294,6 +294,20 @@ write_response_body(int sd, char *filepath, prog_options_t *server) {
     retcode = stat(filepath, &fstat);
     size_t bytesWritten = 0;
     size_t bytesToWrite = fstat.st_size;
+
+    if ((start != -2) && (end != -2)) { /* for partial content */
+        bytesWritten = start;
+        if(end == -1) {
+            bytesToWrite = fstat.st_size;
+        } else {
+            bytesToWrite = end;
+            safe_printf("\n%s\n", "removed one from bytesToWrite");
+        }
+
+        if (lseek(file, bytesWritten, SEEK_SET) < 0) {
+            return -1;
+        }
+    }
 
     while (bytesWritten < bytesToWrite) {
         size_t writtenThisTime;
@@ -317,19 +331,14 @@ write_response_body(int sd, char *filepath, prog_options_t *server) {
 }
 
 static int
-create_response_header(char *filepath, http_header_t *response_header_data, struct stat fstat) {
-    // content-length, content type, und last modified
-    int size = strlen(http_header_field_list[3]) + sizeof (long long) +strlen("\r\n") + 1;
-    response_header_data->content_length = malloc(size);
-    snprintf(response_header_data->content_length, size, "%s%lld\r\n", http_header_field_list[3], (long long) fstat.st_size);
-    //safe_printf("Content length: %s\n", response_header_data->content_length);
+create_response_header(char *filepath, http_header_t *response_header_data, struct stat fstat, int start, int end) {
 
     // content-type
     char *content_type_str;
     http_content_type_t content_type;
     content_type = get_http_content_type(filepath);
     content_type_str = get_http_content_type_str(content_type);
-    size = strlen(http_header_field_list[4]) + strlen(content_type_str) + strlen("\r\n") + 1;
+    int size = strlen(http_header_field_list[4]) + strlen(content_type_str) + strlen("\r\n") + 1;
     response_header_data->content_type = malloc(size);
     snprintf(response_header_data->content_type, size, "%s%s\r\n", http_header_field_list[4], content_type_str);
     //snprintf(response_header_data.last_modified)
@@ -343,6 +352,27 @@ create_response_header(char *filepath, http_header_t *response_header_data, stru
     response_header_data->last_modified = malloc(size);
     snprintf(response_header_data->last_modified, size, "%s%s\r\n", http_header_field_list[2], timeString);
     //safe_printf("Last modified: %s\n", response_header_data->last_modified);
+
+    // content-range
+    if ((start != -2) && (end != -2)) { /* for partial content */
+        size = strlen(http_header_field_list[8]) + sizeof(int)*3 + strlen("bytes -/\r\n") + 1;
+        response_header_data->content_range = malloc(size);
+        int endOfRange = fstat.st_size-1;
+        snprintf(response_header_data->content_range, size, "%sbytes %d-%d/%d\r\n", http_header_field_list[8], start, endOfRange, (int)fstat.st_size);
+        
+        int size = strlen(http_header_field_list[3]) + sizeof (int) +strlen("\r\n") + 1;
+        int range_length = fstat.st_size - start;
+        response_header_data->content_length = malloc(size);
+        snprintf(response_header_data->content_length, size, "%s%d\r\n", http_header_field_list[3], range_length);
+    } else {
+        // content-length, content type, und last modified
+        size = strlen(http_header_field_list[3]) + sizeof (long long) +strlen("\r\n") + 1;
+        response_header_data->content_length = malloc(size);
+        snprintf(response_header_data->content_length, size, "%s%lld\r\n", http_header_field_list[3], (long long) fstat.st_size);
+        //safe_printf("Content length: %s\n", response_header_data->content_length);   
+    }
+
+    // TODO: return retcode instead of 0
     return 0;
 }
 
@@ -387,10 +417,13 @@ create_response_header_string(http_header_t response_header_data, char* response
     if (response_header_data.content_location != NULL) {
         strcat(response_header_string, response_header_data.content_location);
     }
+    if (response_header_data.content_range != NULL) {
+        strcat(response_header_string, response_header_data.content_range);
+    }
     //safe_printf("\n\nResponse header end: %s\n", response_header_string);
     // end header
     strcat(response_header_string, "\r\n");
-    // safe_printf("Response Header\n%s\n\n",response_header_string);
+    safe_printf("Response Header\n%s\n\n",response_header_string);
     return 0;
 }
 
@@ -415,7 +448,8 @@ handle_client(int sd, prog_options_t *server, struct sockaddr_in client) {
         .content_type = NULL,
         .connection = NULL,
         .accept_ranges = NULL,
-        .content_location = NULL
+        .content_location = NULL,
+        .content_range = NULL
     };
     int retcode = 0;
     char filepath[BUFSIZE]; /* path to requested file */
@@ -424,6 +458,15 @@ handle_client(int sd, prog_options_t *server, struct sockaddr_in client) {
     read_from_socket(sd, client_header, BUFSIZE, server->timeout);
     parsed_header = parse_http_header(client_header);
 
+    strcpy(filepath, server->root_dir);
+    strcat(filepath, parsed_header.filename);
+    //snprintf(filepath, BUFSIZE, "%s%s", server->root_dir, parsed_header.filename);
+    //safe_printf("%s\n", filepath);
+
+    retcode = stat(filepath, &fstat);
+    if (retcode) {
+        perror("ERROR: stat");
+    }
     // check on parsed http status
     //TODO HTTP_RANGE_NOT_SATISFIABLE handeln
     switch (parsed_header.httpState) {
@@ -442,6 +485,23 @@ handle_client(int sd, prog_options_t *server, struct sockaddr_in client) {
             response_header_data.status = http_status_list[9];
             create_response_header_string(response_header_data, server_header);
             return write_response_header(sd, server_header, server);
+        case HTTP_STATUS_RANGE_NOT_SATISFIABLE:
+            response_header_data.status = http_status_list[7];
+            create_response_header_string(response_header_data, server_header);
+            return write_response_header(sd, server_header, server);
+        case HTTP_STATUS_PARTIAL_CONTENT:
+            if (parsed_header.byteStart >= fstat.st_size) { /* throw 416 */
+                safe_printf("%s\n", "range not satisfiable");
+                response_header_data.status = http_status_list[7];
+                create_response_header_string(response_header_data, server_header);
+                return write_response_header(sd, server_header, server);
+            }
+            safe_printf("%s\n", "partial content from tinyweb!");
+            response_header_data.status = http_status_list[1];
+            create_response_header(filepath, &response_header_data, fstat, parsed_header.byteStart, parsed_header.byteEnd);
+            create_response_header_string(response_header_data, server_header);
+            write_response_header(sd, server_header, server);
+            return write_response_body(sd, filepath, server, parsed_header.byteStart, parsed_header.byteEnd);
         default:
             break;
     }
@@ -452,15 +512,6 @@ handle_client(int sd, prog_options_t *server, struct sockaddr_in client) {
     //TODO logging
 
 
-    strcpy(filepath, server->root_dir);
-    strcat(filepath, parsed_header.filename);
-    //snprintf(filepath, BUFSIZE, "%s%s", server->root_dir, parsed_header.filename);
-    //safe_printf("%s\n", filepath);
-
-    retcode = stat(filepath, &fstat);
-    if (retcode) {
-        perror("ERROR: stat");
-    }
 
     if (parsed_header.isCGI) {
         pid_t pid; /* process id */
@@ -544,15 +595,16 @@ handle_client(int sd, prog_options_t *server, struct sockaddr_in client) {
     // check on parsed http method
     if (strcmp(parsed_header.method, "GET") == 0) { /* GET method */
         //safe_printf("%s\n", "GET");
+        //safe_printf("byteStart: %d\nbyteEnd: %d\n", parsed_header.byteStart, parsed_header.byteEnd);
         response_header_data.status = http_status_list[0];
-        create_response_header(filepath, &response_header_data, fstat);
+        create_response_header(filepath, &response_header_data, fstat, parsed_header.byteStart, parsed_header.byteEnd);
         create_response_header_string(response_header_data, server_header);
         write_response_header(sd, server_header, server);
-        return write_response_body(sd, filepath, server);
+        return write_response_body(sd, filepath, server, parsed_header.byteStart, parsed_header.byteEnd);
     } else { /* HEAD method */
         //safe_printf("%s\n", "HEAD");
         response_header_data.status = http_status_list[0];
-        create_response_header(filepath, &response_header_data, fstat);
+        create_response_header(filepath, &response_header_data, fstat, parsed_header.byteStart, parsed_header.byteEnd);
         create_response_header_string(response_header_data, server_header);
         return write_response_header(sd, server_header, server);
     }

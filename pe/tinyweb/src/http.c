@@ -54,5 +54,5 @@ char* http_header_field_list[] = {
     "Connection: ",
     "Accept-Ranges: ",
     "Location: ",
-    "Range"
+    "Content-Range: "
 };

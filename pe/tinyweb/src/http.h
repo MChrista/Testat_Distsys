@@ -56,6 +56,7 @@ typedef struct http_header {
     char    *connection;
     char    *accept_ranges;
     char    *content_location;
+    char    *content_range;
 } http_header_t;
 
 
