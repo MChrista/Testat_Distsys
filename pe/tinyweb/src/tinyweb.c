@@ -42,7 +42,6 @@ static volatile sig_atomic_t server_running = false;
 
 #define IS_ROOT_DIR(mode)   (S_ISDIR(mode) && ((S_IROTH || S_IXOTH) & (mode)))
 
-
 static int
 get_options(int argc, char *argv[], prog_options_t *opt) {
     int c;
@@ -481,6 +480,7 @@ handle_client(int sd, prog_options_t *server, struct sockaddr_in client) {
         if (fstat.st_mode & S_IEXEC) {
             if (pipe(link) == -1) {
                 safe_printf("Die pipe\n");
+                exit(EXIT_FAILURE);
             }
             pid = fork();
             if (pid == 0) {
@@ -495,7 +495,7 @@ handle_client(int sd, prog_options_t *server, struct sockaddr_in client) {
                 execle("/bin/sh", "sh", "-c", "./web/cgi-bin/hello.pl", NULL, NULL);
                 //execle("/bin/sh", "sh", "-c", cCgiCommand_p, (char) NULL, (char) NULL);
                 //execl("/usr/bin/who", "who", NULL);
-                exit(1);
+                exit(EXIT_SUCCESS);
 
                 //exit(EXIT_SUCCESS);
             } else if (pid > 0) {
@@ -510,21 +510,35 @@ handle_client(int sd, prog_options_t *server, struct sockaddr_in client) {
                 /*
                  * TODO
                  * In foo steht das Ergebnis
+                 * HTTP 200
+                 * text/HTML
+                 * Reichen die Header Felder
+                 * Check wait for success
                  */
-                
+
                 wait(NULL);
-                safe_printf("Kind ist fertig\n");
+                response_header_data.status = http_status_list[0];
+                response_header_data.content_length = (char *)strlen(foo);
+                response_header_data.content_type = "text/html";
+                create_response_header_string(response_header_data, server_header);
+                write_response_header(sd, server_header, server);
+                if (write(sd, foo, strlen(foo) - 1) < 0) {
+                    printf("%s\n", "Writing to the client went wrong!");
+                }
+                //exit(EXIT_SUCCESS);
             } else {
                 /* 
                  * error while forking 
                  */
                 safe_printf("ERROR: fork()");
+                exit(EXIT_FAILURE);
             }
         } else { /* 403 */
             safe_printf("Not executable\n");
             response_header_data.status = http_status_list[5];
             create_response_header_string(response_header_data, server_header);
             return write_response_header(sd, server_header, server);
+            exit(EXIT_FAILURE);
         }
 
 
