@@ -1,3 +1,5 @@
+#define __USE_XOPEN
+#define _GNU_SOURCE
 #include <stdio.h>
 #include <time.h>
 #include <sys/types.h>
@@ -21,6 +23,7 @@
 #include <ctype.h>
 #include <signal.h>
 #include <getopt.h>
+#include <fcntl.h>
 
 #include "tinyweb.h"
 #include "connect_tcp.h"
@@ -38,6 +41,7 @@
 static volatile sig_atomic_t server_running = false;
 
 #define IS_ROOT_DIR(mode)   (S_ISDIR(mode) && ((S_IROTH || S_IXOTH) & (mode)))
+
 
 static int
 get_options(int argc, char *argv[], prog_options_t *opt) {
@@ -487,8 +491,11 @@ handle_client(int sd, prog_options_t *server, struct sockaddr_in client) {
                 dup2(link[1], STDOUT_FILENO);
                 close(link[0]);
                 close(link[1]);
-                execl("/etc/", "ls", "-1", (char *) 0);
-                exit(0);
+                //TODO: Change Path
+                execle("/bin/sh", "sh", "-c", "./web/cgi-bin/hello.pl", NULL, NULL);
+                //execle("/bin/sh", "sh", "-c", cCgiCommand_p, (char) NULL, (char) NULL);
+                //execl("/usr/bin/who", "who", NULL);
+                exit(1);
 
                 //exit(EXIT_SUCCESS);
             } else if (pid > 0) {
@@ -500,6 +507,11 @@ handle_client(int sd, prog_options_t *server, struct sockaddr_in client) {
                 close(link[1]);
                 int nbytes = read(link[0], foo, sizeof (foo));
                 safe_printf("Output: (%.*s)\n", nbytes, foo);
+                /*
+                 * TODO
+                 * In foo steht das Ergebnis
+                 */
+                
                 wait(NULL);
                 safe_printf("Kind ist fertig\n");
             } else {
