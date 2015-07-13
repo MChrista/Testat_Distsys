@@ -281,7 +281,7 @@ write_response_body(int sd, char *filepath, prog_options_t *server) {
     int file; /* file descriptor of requested file */
     int chunkSize = 256; /* chunk size for write of message body */
 
-    safe_printf("%s\n", filepath);
+    //safe_printf("%s\n", filepath);
 
     file = open(filepath, O_RDONLY);
     if (file < 0) {
@@ -322,7 +322,7 @@ create_response_header(char *filepath, http_header_t *response_header_data, stru
     int size = strlen(http_header_field_list[3]) + sizeof (long long) +strlen("\r\n") + 1;
     response_header_data->content_length = malloc(size);
     snprintf(response_header_data->content_length, size, "%s%lld\r\n", http_header_field_list[3], (long long) fstat.st_size);
-    safe_printf("Content length: %s\n", response_header_data->content_length);
+    //safe_printf("Content length: %s\n", response_header_data->content_length);
 
     // content-type
     char *content_type_str;
@@ -333,7 +333,7 @@ create_response_header(char *filepath, http_header_t *response_header_data, stru
     response_header_data->content_type = malloc(size);
     snprintf(response_header_data->content_type, size, "%s%s\r\n", http_header_field_list[4], content_type_str);
     //snprintf(response_header_data.last_modified)
-    safe_printf("Content Type: %s\n", response_header_data->content_type);
+    //safe_printf("Content Type: %s\n", response_header_data->content_type);
 
     struct tm * timeinfo;
     char timeString[80];
@@ -342,7 +342,7 @@ create_response_header(char *filepath, http_header_t *response_header_data, stru
     size = strlen(http_header_field_list[2]) + strlen(timeString) + strlen("\r\n") + 1;
     response_header_data->last_modified = malloc(size);
     snprintf(response_header_data->last_modified, size, "%s%s\r\n", http_header_field_list[2], timeString);
-    safe_printf("Last modified: %s\n", response_header_data->last_modified);
+    //safe_printf("Last modified: %s\n", response_header_data->last_modified);
     return 0;
 }
 
@@ -351,7 +351,7 @@ create_response_header_string(http_header_t response_header_data, char* response
     // status
     snprintf(response_header_string, 50, "%s %hu %s\r\n", "HTTP/1.1", response_header_data.status.code, response_header_data.status.text);
 
-    safe_printf("\n\nResponse header einstieg: %s\n", response_header_string);
+    //safe_printf("\n\nResponse header einstieg: %s\n", response_header_string);
     // server
     char server[30];
     snprintf(server, 30, "%s%s\r\n", http_header_field_list[1], "Tinyweb 1.1");
@@ -367,30 +367,30 @@ create_response_header_string(http_header_t response_header_data, char* response
     strftime(timeString, 80, "%a, %d %b %Y %H:%M:%S", timeinfo);
     snprintf(date, 50, "%s%s\r\n", http_header_field_list[0], timeString);
     strcat(response_header_string, date);
-    safe_printf("\n\nResponse header date: \n%s\n", response_header_string);
-    safe_printf("Content length: %s\n", response_header_data.content_length);
+    //safe_printf("\n\nResponse header date: \n%s\n", response_header_string);
+    //safe_printf("Content length: %s\n", response_header_data.content_length);
     if (response_header_data.content_length != NULL) {
         //content length
         strcat(response_header_string, response_header_data.content_length);
-        safe_printf("content length\n", response_header_string);
+        //safe_printf("content length\n", response_header_string);
     }
     if (response_header_data.content_type != NULL) {
         //content type
         strcat(response_header_string, response_header_data.content_type);
-        safe_printf("content type\n", response_header_string);
+        //safe_printf("content type\n", response_header_string);
     }
     if (response_header_data.last_modified != NULL) {
         //last modified
         strcat(response_header_string, response_header_data.last_modified);
-        safe_printf("last modified\n", response_header_string);
+        //safe_printf("last modified\n", response_header_string);
     }
     if (response_header_data.content_location != NULL) {
         strcat(response_header_string, response_header_data.content_location);
     }
-    safe_printf("\n\nResponse header end: %s\n", response_header_string);
+    //safe_printf("\n\nResponse header end: %s\n", response_header_string);
     // end header
     strcat(response_header_string, "\r\n");
-    safe_printf("Response Header\n%s\n\n",response_header_string);
+    // safe_printf("Response Header\n%s\n\n",response_header_string);
     return 0;
 }
 
@@ -406,16 +406,17 @@ handle_client(int sd, prog_options_t *server, struct sockaddr_in client) {
     char client_header[BUFSIZE];
     char server_header[BUFSIZE];
     parsed_http_header_t parsed_header;
-    http_header_t response_header_data = { 
-        .status = http_status_list[8], 
-        .date = NULL, 
-        .server = NULL, 
-        .last_modified = NULL, 
-        .content_length = NULL, 
-        .content_type = NULL, 
-        .connection = NULL, 
-        .accept_ranges = NULL, 
-        .content_location = NULL };
+    http_header_t response_header_data = {
+        .status = http_status_list[8],
+        .date = NULL,
+        .server = NULL,
+        .last_modified = NULL,
+        .content_length = NULL,
+        .content_type = NULL,
+        .connection = NULL,
+        .accept_ranges = NULL,
+        .content_location = NULL
+    };
     int retcode = 0;
     char filepath[BUFSIZE]; /* path to requested file */
     struct stat fstat; /* file status */
@@ -449,19 +450,74 @@ handle_client(int sd, prog_options_t *server, struct sockaddr_in client) {
     //TODO Partial Content
     //TODO 500 bei kind abschuss und bei negativem return wert von handle_client
     //TODO logging
-    if (parsed_header.isCGI) {
 
-    }
 
     strcpy(filepath, server->root_dir);
     strcat(filepath, parsed_header.filename);
     //snprintf(filepath, BUFSIZE, "%s%s", server->root_dir, parsed_header.filename);
-    safe_printf("%s\n", filepath);
+    //safe_printf("%s\n", filepath);
 
     retcode = stat(filepath, &fstat);
-    if(retcode) {
+    if (retcode) {
         perror("ERROR: stat");
     }
+
+    if (parsed_header.isCGI) {
+        pid_t pid; /* process id */
+        int link[2];
+        char foo[4096];
+        safe_printf("Tinyweb CGI\n");
+        /*
+         * Check executable, only on success go on
+         * Not Found 404
+         * Not Executable 403
+         * Output an Client
+         * 
+         */
+        if (fstat.st_mode & S_IEXEC) {
+            if (pipe(link) == -1) {
+                safe_printf("Die pipe\n");
+            }
+            pid = fork();
+            if (pid == 0) {
+                /* 
+                 * child process 
+                 * Close sd ??
+                 */
+                dup2(link[1], STDOUT_FILENO);
+                close(link[0]);
+                close(link[1]);
+                execl("/etc/", "ls", "-1", (char *) 0);
+                exit(0);
+
+                //exit(EXIT_SUCCESS);
+            } else if (pid > 0) {
+                /* 
+                 * parent process 
+                 * 
+                 * TODO: Socket Descriptor, wait for Child and return Status
+                 */
+                close(link[1]);
+                int nbytes = read(link[0], foo, sizeof (foo));
+                safe_printf("Output: (%.*s)\n", nbytes, foo);
+                wait(NULL);
+                safe_printf("Kind ist fertig\n");
+            } else {
+                /* 
+                 * error while forking 
+                 */
+                safe_printf("ERROR: fork()");
+            }
+        } else { /* 403 */
+            safe_printf("Not executable\n");
+            response_header_data.status = http_status_list[5];
+            create_response_header_string(response_header_data, server_header);
+            return write_response_header(sd, server_header, server);
+        }
+
+
+    }
+
 
     // check for 404, 304, 301
     if (!(S_ISREG(fstat.st_mode)) && !(S_ISDIR(fstat.st_mode))) { /* 404 */
@@ -475,7 +531,7 @@ handle_client(int sd, prog_options_t *server, struct sockaddr_in client) {
         snprintf(response_header_data.content_location, BUFSIZE, "%s%s%s\r\n", http_header_field_list[7], filepath, "/");
         create_response_header_string(response_header_data, server_header);
         return write_response_header(sd, server_header, server);
-    } else if(parsed_header.modsince != 0) { /* 304 */
+    } else if (parsed_header.modsince != 0) { /* 304 */
         int seconds;
         seconds = difftime(parsed_header.modsince, fstat.st_mtime);
         if (seconds >= 0) {
@@ -487,14 +543,14 @@ handle_client(int sd, prog_options_t *server, struct sockaddr_in client) {
 
     // check on parsed http method
     if (strcmp(parsed_header.method, "GET") == 0) { /* GET method */
-        safe_printf("%s\n", "GET");
+        //safe_printf("%s\n", "GET");
         response_header_data.status = http_status_list[0];
         create_response_header(filepath, &response_header_data, fstat);
         create_response_header_string(response_header_data, server_header);
         write_response_header(sd, server_header, server);
         return write_response_body(sd, filepath, server);
     } else { /* HEAD method */
-        safe_printf("%s\n", "HEAD");
+        //safe_printf("%s\n", "HEAD");
         response_header_data.status = http_status_list[0];
         create_response_header(filepath, &response_header_data, fstat);
         create_response_header_string(response_header_data, server_header);

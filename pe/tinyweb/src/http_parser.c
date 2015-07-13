@@ -114,9 +114,10 @@ parse_http_header(char *header) {
             }
             //char *rangeTest = "Range: bytes=700-500";
 
-
+            //safe_printf("Anfrage\n",pointer);
             pointer = strtok(NULL, "\n");
             while (pointer != NULL) {
+                //safe_printf("%s\n",pointer);
                 struct tm tm;
                 char *ret = strptime(pointer, "If-Modified-Since: %a, %d %b %Y %H:%M:%S", &tm);
                 if (ret != NULL) {
@@ -125,17 +126,21 @@ parse_http_header(char *header) {
                 }
 
                 if (regexec(&rangeRegex, pointer, MAX_MATCHES, matches, 0) == 0) {
-                    safe_printf("begin: %d end: %d\n", matches[0].rm_so, matches[0].rm_eo);
+                    //safe_printf("begin: %d end: %d\n", matches[0].rm_so, matches[0].rm_eo);
+                    //safe_printf("Headerzeile:\n%s\n",pointer);
                     int matchEnd = matches[0].rm_eo;
                     int i = 0;
                     int pos = 1;
                     int startValue = -1;
                     int endValue = -1;
                     int c = (int) (pointer[matchEnd - i - 1] - '0');
+                    if(c >= 0 && c <= 9){
+                        endValue = 0;
+                    }
                     //last char is either a "-" or a digit
                     while (c >= 0 && c <= 9) {
                         int temp = c;
-                        endValue = temp * pos;
+                        endValue = endValue + temp * pos;
                         i++;
                         pos = pos * 10;
                         c = (int) (pointer[matchEnd - i - 1] - '0');
@@ -144,9 +149,12 @@ parse_http_header(char *header) {
                     i++;
                     pos = 1;
                     c = (int) (pointer[matchEnd - i - 1] - '0');
+                    if(c >= 0 && c <= 9){
+                        startValue = 0;
+                    }
                     while (c >= 0 && c <= 9) {
                         int temp = c;
-                        startValue = temp * pos;
+                        startValue = startValue + temp * pos;
                         i++;
                         pos = pos * 10;
                         c = (int) (pointer[matchEnd - i - 1] - '0');
@@ -168,6 +176,7 @@ parse_http_header(char *header) {
                         parsed_header.httpState = HTTP_STATUS_PARTIAL_CONTENT;
                         safe_printf("Partial Content\n");
                     }
+                    safe_printf("Range:\nValue 1: %d\nValue 2: %d\n\n",startValue,endValue);
 
                 } //end of parsing range
 
