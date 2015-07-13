@@ -510,12 +510,33 @@ handle_client(int sd, prog_options_t *server, struct sockaddr_in client) {
     }
 
     //TODO check CGI
-    //TODO Partial Content
     //TODO 500 bei kind abschuss und bei negativem return wert von handle_client
     //TODO logging
+    //TODO signal handling?!
 
+    // check for 404, 304, 301
+    if (!(S_ISREG(fstat.st_mode)) && !(S_ISDIR(fstat.st_mode))) { /* 404 */
+        response_header_data.status = http_status_list[6];
+        create_response_header_string(response_header_data, server_header);
+        return write_response_header(sd, server_header, server);
+    } else if (S_ISDIR(fstat.st_mode)) { /* 301 */
+        response_header_data.status = http_status_list[2];
+        int size = strlen(http_header_field_list[7]) + strlen(filepath) + strlen("/\r\n") + 1;
+        response_header_data.content_location = malloc(size);
+        snprintf(response_header_data.content_location, BUFSIZE, "%s%s%s\r\n", http_header_field_list[7], filepath, "/");
+        create_response_header_string(response_header_data, server_header);
+        return write_response_header(sd, server_header, server);
+    } else if (parsed_header.modsince != 0) { /* 304 */
+        int seconds;
+        seconds = difftime(parsed_header.modsince, fstat.st_mtime);
+        if (seconds >= 0) {
+            response_header_data.status = http_status_list[3];
+            create_response_header_string(response_header_data, server_header);
+            return write_response_header(sd, server_header, server);
+        }
+    }
 
-
+    // already checked for 404
     if (parsed_header.isCGI) {
         pid_t pid; /* process id */
         int link[2];
@@ -596,27 +617,6 @@ handle_client(int sd, prog_options_t *server, struct sockaddr_in client) {
     }
 
 
-    // check for 404, 304, 301
-    if (!(S_ISREG(fstat.st_mode)) && !(S_ISDIR(fstat.st_mode))) { /* 404 */
-        response_header_data.status = http_status_list[6];
-        create_response_header_string(response_header_data, server_header);
-        return write_response_header(sd, server_header, server);
-    } else if (S_ISDIR(fstat.st_mode)) { /* 301 */
-        response_header_data.status = http_status_list[2];
-        int size = strlen(http_header_field_list[7]) + strlen(filepath) + strlen("/\r\n") + 1;
-        response_header_data.content_location = malloc(size);
-        snprintf(response_header_data.content_location, BUFSIZE, "%s%s%s\r\n", http_header_field_list[7], filepath, "/");
-        create_response_header_string(response_header_data, server_header);
-        return write_response_header(sd, server_header, server);
-    } else if (parsed_header.modsince != 0) { /* 304 */
-        int seconds;
-        seconds = difftime(parsed_header.modsince, fstat.st_mtime);
-        if (seconds >= 0) {
-            response_header_data.status = http_status_list[3];
-            create_response_header_string(response_header_data, server_header);
-            return write_response_header(sd, server_header, server);
-        }
-    }
 
     // check on parsed http method
     if (strcmp(parsed_header.method, "GET") == 0) { /* GET method */
