@@ -569,11 +569,13 @@ handle_client(int sd, prog_options_t *server, struct sockaddr_in client) {
 
     // check for 404, 304, 301
     if (!(S_ISREG(fstat.st_mode)) && !(S_ISDIR(fstat.st_mode))) { /* 404 */
+        safe_printf("Not Found\n");
         response_header_data.status = http_status_list[6];
         create_response_header_string(response_header_data, server_header);
         write_log(parsed_header, client, filepath, server_header, fstat, parsed_header.byteStart, parsed_header.byteEnd, server);
         return write_response_header(sd, server_header, server);
     } else if (S_ISDIR(fstat.st_mode)) { /* 301 */
+        safe_printf("Directory\n");
         response_header_data.status = http_status_list[2];
         int size = strlen(http_header_field_list[7]) + strlen(filepath) + strlen("/\r\n") + 1;
         response_header_data.content_location = malloc(size);
@@ -606,12 +608,13 @@ handle_client(int sd, prog_options_t *server, struct sockaddr_in client) {
          * 
          */
         if (fstat.st_mode & S_IEXEC) {
-
+            char* execPath = malloc(strlen(filepath) + 3);
+            strcpy(execPath, "./");
+            strcat(execPath,filepath);
             pid = fork();
             if (pid == 0) {
                 /* 
                  * child process 
-                 * Close sd ??
                  */
                 dup2(sd, STDOUT_FILENO);
                 close(sd);
@@ -623,8 +626,7 @@ handle_client(int sd, prog_options_t *server, struct sockaddr_in client) {
                 server_header[headerLength-2] = '\0';
 
                 fprintf(stdout, "%s", server_header);
-                //TODO: Change Path
-                execle("/bin/sh", "sh", "-c", "./web/cgi-bin/hello.pl", NULL, NULL);
+                execle("/bin/sh", "sh", "-c", execPath, NULL, NULL);
                 //execle("/bin/sh", "sh", "-c", cCgiCommand_p, (char) NULL, (char) NULL);
                 //execl("/usr/bin/who", "who", NULL);
                 exit(EXIT_SUCCESS);
@@ -647,7 +649,6 @@ handle_client(int sd, prog_options_t *server, struct sockaddr_in client) {
                  * Reichen die Header Felder
                  * Check wait for success
                  */
-
                 wait(NULL);
                 close(sd);
                 exit(EXIT_SUCCESS);
@@ -666,8 +667,6 @@ handle_client(int sd, prog_options_t *server, struct sockaddr_in client) {
             return write_response_header(sd, server_header, server);
             exit(EXIT_FAILURE);
         }
-
-
     }
 
     // check on parsed http method
