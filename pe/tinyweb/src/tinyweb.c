@@ -288,10 +288,11 @@ write_response_body(int sd, char *filepath, prog_options_t *server, int start, i
     int file; /* file descriptor of requested file */
     int chunkSize = 256; /* chunk size for write of message body */
 
-    //safe_printf("%s\n", filepath);
+    safe_printf("%s\n", filepath);
 
     file = open(filepath, O_RDONLY);
     if (file < 0) {
+        safe_printf("Line 295");
         perror("ERROR: open()");
         return -1;
     } /* end if */
@@ -523,31 +524,31 @@ handle_client(int sd, prog_options_t *server, struct sockaddr_in client) {
             //safe_printf("%s\n", "internal server error");
             response_header_data.status = http_status_list[8];
             create_response_header_string(response_header_data, server_header);
-            write_log(parsed_header, client, filepath, server_header, fstat,parsed_header.byteStart, parsed_header.byteEnd, server);
+            write_log(parsed_header, client, filepath, server_header, fstat, parsed_header.byteStart, parsed_header.byteEnd, server);
             return write_response_header(sd, server_header, server);
         case HTTP_STATUS_BAD_REQUEST:
             //safe_printf("%s\n", "bad request");
             response_header_data.status = http_status_list[4];
             create_response_header_string(response_header_data, server_header);
-            write_log(parsed_header, client, filepath, server_header, fstat,parsed_header.byteStart, parsed_header.byteEnd, server);
+            write_log(parsed_header, client, filepath, server_header, fstat, parsed_header.byteStart, parsed_header.byteEnd, server);
             return write_response_header(sd, server_header, server);
         case HTTP_STATUS_NOT_IMPLEMENTED:
             //safe_printf("%s\n", "not implemented");
             response_header_data.status = http_status_list[9];
             create_response_header_string(response_header_data, server_header);
-            write_log(parsed_header, client, filepath, server_header, fstat,parsed_header.byteStart, parsed_header.byteEnd, server);
+            write_log(parsed_header, client, filepath, server_header, fstat, parsed_header.byteStart, parsed_header.byteEnd, server);
             return write_response_header(sd, server_header, server);
         case HTTP_STATUS_RANGE_NOT_SATISFIABLE:
             response_header_data.status = http_status_list[7];
             create_response_header_string(response_header_data, server_header);
-            write_log(parsed_header, client, filepath, server_header, fstat,parsed_header.byteStart, parsed_header.byteEnd, server);
+            write_log(parsed_header, client, filepath, server_header, fstat, parsed_header.byteStart, parsed_header.byteEnd, server);
             return write_response_header(sd, server_header, server);
         case HTTP_STATUS_PARTIAL_CONTENT:
             if (parsed_header.byteStart >= fstat.st_size) { /* throw 416 */
                 //safe_printf("%s\n", "range not satisfiable");
                 response_header_data.status = http_status_list[7];
                 create_response_header_string(response_header_data, server_header);
-                write_log(parsed_header, client, filepath, server_header, fstat,parsed_header.byteStart, parsed_header.byteEnd, server);
+                write_log(parsed_header, client, filepath, server_header, fstat, parsed_header.byteStart, parsed_header.byteEnd, server);
                 return write_response_header(sd, server_header, server);
             }
             //safe_printf("%s\n", "partial content from tinyweb!");
@@ -555,7 +556,7 @@ handle_client(int sd, prog_options_t *server, struct sockaddr_in client) {
             create_response_header(filepath, &response_header_data, fstat, parsed_header.byteStart, parsed_header.byteEnd);
             create_response_header_string(response_header_data, server_header);
             write_response_header(sd, server_header, server);
-            write_log(parsed_header, client, filepath, server_header, fstat,parsed_header.byteStart, parsed_header.byteEnd, server);
+            write_log(parsed_header, client, filepath, server_header, fstat, parsed_header.byteStart, parsed_header.byteEnd, server);
             return write_response_body(sd, filepath, server, parsed_header.byteStart, parsed_header.byteEnd);
         default:
             break;
@@ -570,7 +571,7 @@ handle_client(int sd, prog_options_t *server, struct sockaddr_in client) {
     if (!(S_ISREG(fstat.st_mode)) && !(S_ISDIR(fstat.st_mode))) { /* 404 */
         response_header_data.status = http_status_list[6];
         create_response_header_string(response_header_data, server_header);
-        write_log(parsed_header, client, filepath, server_header, fstat,parsed_header.byteStart, parsed_header.byteEnd, server);
+        write_log(parsed_header, client, filepath, server_header, fstat, parsed_header.byteStart, parsed_header.byteEnd, server);
         return write_response_header(sd, server_header, server);
     } else if (S_ISDIR(fstat.st_mode)) { /* 301 */
         response_header_data.status = http_status_list[2];
@@ -578,7 +579,7 @@ handle_client(int sd, prog_options_t *server, struct sockaddr_in client) {
         response_header_data.content_location = malloc(size);
         snprintf(response_header_data.content_location, BUFSIZE, "%s%s%s\r\n", http_header_field_list[7], filepath, "/");
         create_response_header_string(response_header_data, server_header);
-        write_log(parsed_header, client, filepath, server_header, fstat,parsed_header.byteStart, parsed_header.byteEnd, server);
+        write_log(parsed_header, client, filepath, server_header, fstat, parsed_header.byteStart, parsed_header.byteEnd, server);
         return write_response_header(sd, server_header, server);
     } else if (parsed_header.modsince != 0) { /* 304 */
         int seconds;
@@ -586,7 +587,7 @@ handle_client(int sd, prog_options_t *server, struct sockaddr_in client) {
         if (seconds >= 0) {
             response_header_data.status = http_status_list[3];
             create_response_header_string(response_header_data, server_header);
-            write_log(parsed_header, client, filepath, server_header, fstat,parsed_header.byteStart, parsed_header.byteEnd, server);
+            write_log(parsed_header, client, filepath, server_header, fstat, parsed_header.byteStart, parsed_header.byteEnd, server);
             return write_response_header(sd, server_header, server);
         }
     }
@@ -594,8 +595,8 @@ handle_client(int sd, prog_options_t *server, struct sockaddr_in client) {
     // already checked for 404
     if (parsed_header.isCGI) {
         pid_t pid; /* process id */
-        int link[2];
-        char buffer[4096];
+        //int link[2];
+        //char buffer[4096];
         //safe_printf("Tinyweb CGI\n");
         /*
          * Check executable, only on success go on
@@ -605,21 +606,27 @@ handle_client(int sd, prog_options_t *server, struct sockaddr_in client) {
          * 
          */
         if (fstat.st_mode & S_IEXEC) {
-            if (pipe(link) == -1) {
-                //safe_printf("Die pipe\n");
-                exit(EXIT_FAILURE);
-            }
+
             pid = fork();
             if (pid == 0) {
                 /* 
                  * child process 
                  * Close sd ??
                  */
-                dup2(link[1], STDOUT_FILENO);
-                close(link[0]);
-                close(link[1]);
- 
-                fprintf(stdout, "HTTP/1.1 200 OK\r\nDate: Tue, 14 Jul 2015 16:55:47\r\nServer: Tinyweb 1.1\r\n");
+                dup2(sd, STDOUT_FILENO);
+                close(sd);
+
+                // date
+                char timeString [80];
+                char date [50];
+                time_t rawtime;
+                struct tm * timeinfo;
+                time(&rawtime);
+                timeinfo = localtime(&rawtime);
+                strftime(timeString, 80, "%a, %d %b %Y %H:%M:%S", timeinfo);
+                snprintf(date, 50, "%s%s\r\n", http_header_field_list[0], timeString);
+                
+                fprintf(stdout, "HTTP/1.1 200 OK\r\nDate: %s GMT\r\nServer: Tinyweb 1.1\r\n", date);
                 //TODO: Change Path
                 execle("/bin/sh", "sh", "-c", "./web/cgi-bin/hello.pl", NULL, NULL);
                 //execle("/bin/sh", "sh", "-c", cCgiCommand_p, (char) NULL, (char) NULL);
@@ -633,9 +640,9 @@ handle_client(int sd, prog_options_t *server, struct sockaddr_in client) {
                  * 
                  * TODO: Socket Descriptor, wait for Child and return Status
                  */
-                close(link[1]);
-                int nbytes = read(link[0], buffer, sizeof (buffer));
-                safe_printf("Output: (%.*s)\n", nbytes, buffer);
+
+                //int nbytes = read(sd, buffer, sizeof (buffer));
+                //safe_printf("Output: (%.*s)\n", nbytes, buffer);
                 /*
                  * TODO
                  * In foo steht das Ergebnis
@@ -646,58 +653,7 @@ handle_client(int sd, prog_options_t *server, struct sockaddr_in client) {
                  */
 
                 wait(NULL);
-
-                //=============================
-                //Copied from http://www.thegeekstuff.com/2012/06/c-temporary-files/
-                //===============================
-
-                // buffer to hold the temporary file name
-                char nameBuff[32];
-                // buffer to hold data to be written/read to/from temporary file
-                //char buffer[24];
-                int filedes = -1;
-
-                // memset the buffers to 0
-                memset(nameBuff, 0, sizeof (nameBuff));
-                //memset(buffer, 0, sizeof (buffer));
-
-                // Copy the relevant information in the buffers
-                strncpy(nameBuff, "/tmp/myTmpFile-XXXXXX", 21);
-                //strncpy(buffer, "Hello World", 11);
-
-                errno = 0;
-                // Create the temporary file, this function will replace the 'X's
-                filedes = mkstemp(nameBuff);
-
-                // Call unlink so that whenever the file is closed or the program exits
-                // the temporary file is deleted
-                unlink(nameBuff);
-
-                if (filedes < 1) {
-                    safe_printf("\n Creation of temp file failed with error [%s]\n", strerror(errno));
-                    return 1;
-                } else {
-                    safe_printf("\n Temporary file [%s] created\n", nameBuff);
-                }
-
-                errno = 0;
-                // Write some data to the temporary file
-                if (-1 == write(filedes, buffer, strlen(buffer))) {
-                    safe_printf("\n write failed with error [%s]\n", strerror(errno));
-                    return 1;
-                }
-
-                safe_printf("\n Data written to temporary file is [%s]\n", buffer);
-
-
-                //=============================
-                //END of Copy
-                //===============================
-                response_header_data.status = http_status_list[0];
-                create_response_header(nameBuff, &response_header_data, fstat, parsed_header.byteStart, parsed_header.byteEnd);
-                create_response_header_string(response_header_data, server_header);
-                write_response_header(sd, server_header, server);
-                write_response_body(sd, filepath, server, parsed_header.byteStart, parsed_header.byteEnd);
+                close(sd);
                 exit(EXIT_SUCCESS);
             } else {
                 /* 
@@ -710,7 +666,7 @@ handle_client(int sd, prog_options_t *server, struct sockaddr_in client) {
             //safe_printf("Not executable\n");
             response_header_data.status = http_status_list[5];
             create_response_header_string(response_header_data, server_header);
-            write_log(parsed_header, client, filepath, server_header, fstat,parsed_header.byteStart, parsed_header.byteEnd, server);
+            write_log(parsed_header, client, filepath, server_header, fstat, parsed_header.byteStart, parsed_header.byteEnd, server);
             return write_response_header(sd, server_header, server);
             exit(EXIT_FAILURE);
         }
@@ -726,20 +682,20 @@ handle_client(int sd, prog_options_t *server, struct sockaddr_in client) {
         create_response_header(filepath, &response_header_data, fstat, parsed_header.byteStart, parsed_header.byteEnd);
         create_response_header_string(response_header_data, server_header);
         write_response_header(sd, server_header, server);
-        write_log(parsed_header, client,filepath, server_header, fstat,parsed_header.byteStart, parsed_header.byteEnd, server);
+        write_log(parsed_header, client, filepath, server_header, fstat, parsed_header.byteStart, parsed_header.byteEnd, server);
         return write_response_body(sd, filepath, server, parsed_header.byteStart, parsed_header.byteEnd);
     } else { /* HEAD method */
         //safe_printf("%s\n", "HEAD");
         response_header_data.status = http_status_list[0];
         create_response_header(filepath, &response_header_data, fstat, parsed_header.byteStart, parsed_header.byteEnd);
         create_response_header_string(response_header_data, server_header);
-        write_log(parsed_header, client, filepath, server_header, fstat,parsed_header.byteStart, parsed_header.byteEnd, server);
+        write_log(parsed_header, client, filepath, server_header, fstat, parsed_header.byteStart, parsed_header.byteEnd, server);
         return write_response_header(sd, server_header, server);
     }
 
     response_header_data.status = http_status_list[8];
     create_response_header_string(response_header_data, server_header);
-    write_log(parsed_header, client, filepath, server_header, fstat,parsed_header.byteStart, parsed_header.byteEnd, server);
+    write_log(parsed_header, client, filepath, server_header, fstat, parsed_header.byteStart, parsed_header.byteEnd, server);
     return write_response_header(sd, server_header, server);
 
     return retcode;
