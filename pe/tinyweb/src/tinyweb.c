@@ -36,7 +36,7 @@
 #include "http.h"
 #include "socket_io.h"
 
-extern char **environ;
+//extern char **environ;
 
 // Must be true for the server accepting clients,
 // otherwise, the server will terminate
@@ -431,7 +431,7 @@ create_response_header_string(http_header_t response_header_data, char* response
     //safe_printf("\n\nResponse header end: %s\n", response_header_string);
     // end header
     strcat(response_header_string, "\r\n");
-    //safe_printf("Response Header\n%s\n\n",response_header_string);
+    //safe_printf("Response Header\n%s\n\n", response_header_string);
     return 0;
 }
 
@@ -511,11 +511,14 @@ handle_client(int sd, prog_options_t *server, struct sockaddr_in client) {
     strcpy(filepath, server->root_dir);
     strcat(filepath, parsed_header.filename);
     //snprintf(filepath, BUFSIZE, "%s%s", server->root_dir, parsed_header.filename);
-    //safe_printf("%s\n", filepath);
+    safe_printf("Filepath in handle client: %s\n", filepath);
 
     retcode = stat(filepath, &fstat);
     if (retcode) {
-        //perror("ERROR: stat");
+        response_header_data.status = http_status_list[6];
+        create_response_header_string(response_header_data, server_header);
+        write_log(parsed_header, client, filepath, server_header, fstat, parsed_header.byteStart, parsed_header.byteEnd, server);
+        return write_response_header(sd, server_header, server);
     }
     // check on parsed http status
     //TODO HTTP_RANGE_NOT_SATISFIABLE handeln
@@ -568,6 +571,10 @@ handle_client(int sd, prog_options_t *server, struct sockaddr_in client) {
     //TODO signal handling?!
 
     // check for 404, 304, 301
+    safe_printf("Boolean NOT ISREG: %d\n", !(S_ISREG(fstat.st_mode)));
+    safe_printf("Boolean NOT ISDIR: %d\n", !(S_ISDIR(fstat.st_mode)));
+    safe_printf("Boolean NOT IFDIR: %d\n", !(fstat.st_mode & S_IFDIR));
+    safe_printf("Boolean Combined: %d\n", (!(S_ISREG(fstat.st_mode)) && !(S_ISDIR(fstat.st_mode))));
     if (!(S_ISREG(fstat.st_mode)) && !(S_ISDIR(fstat.st_mode))) { /* 404 */
         safe_printf("Not Found\n");
         response_header_data.status = http_status_list[6];
@@ -575,6 +582,7 @@ handle_client(int sd, prog_options_t *server, struct sockaddr_in client) {
         write_log(parsed_header, client, filepath, server_header, fstat, parsed_header.byteStart, parsed_header.byteEnd, server);
         return write_response_header(sd, server_header, server);
     } else if (S_ISDIR(fstat.st_mode)) { /* 301 */
+        safe_printf("Filepath in 301: %s\n", filepath);
         safe_printf("Directory\n");
         response_header_data.status = http_status_list[2];
         int size = strlen(http_header_field_list[7]) + strlen(filepath) + strlen("/\r\n") + 1;
@@ -599,7 +607,7 @@ handle_client(int sd, prog_options_t *server, struct sockaddr_in client) {
         pid_t pid; /* process id */
         //int link[2];
         //char buffer[4096];
-        //safe_printf("Tinyweb CGI\n");
+        safe_printf("Tinyweb CGI\n");
         /*
          * Check executable, only on success go on
          * Not Found 404
@@ -610,7 +618,7 @@ handle_client(int sd, prog_options_t *server, struct sockaddr_in client) {
         if (fstat.st_mode & S_IEXEC) {
             char* execPath = malloc(strlen(filepath) + 3);
             strcpy(execPath, "./");
-            strcat(execPath,filepath);
+            strcat(execPath, filepath);
             pid = fork();
             if (pid == 0) {
                 /* 
@@ -621,9 +629,9 @@ handle_client(int sd, prog_options_t *server, struct sockaddr_in client) {
 
                 response_header_data.status = http_status_list[0];
                 create_response_header_string(response_header_data, server_header);
-                
+
                 int headerLength = strlen(server_header);
-                server_header[headerLength-2] = '\0';
+                server_header[headerLength - 2] = '\0';
 
                 fprintf(stdout, "%s", server_header);
                 execle("/bin/sh", "sh", "-c", execPath, NULL, NULL);

@@ -73,6 +73,7 @@ parse_http_header(char *header) {
             } else {
                 parsed_header.filename = malloc(strlen(pointer) + 1);
                 strcpy(parsed_header.filename, pointer);
+                safe_printf("Filename in Parser: %s\n", parsed_header.filename );
                 regex_t cgiReg;
                 int rv = regcomp(&cgiReg, "^/cgi-bin", REG_ICASE);
                 if (rv != 0) {
