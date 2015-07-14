@@ -302,7 +302,7 @@ write_response_body(int sd, char *filepath, prog_options_t *server, int start, i
 
     if ((start != -2) && (end != -2)) { /* for partial content */
         bytesWritten = start;
-        if(end == -1) {
+        if (end == -1) {
             bytesToWrite = fstat.st_size;
         } else {
             bytesToWrite = end;
@@ -360,11 +360,11 @@ create_response_header(char *filepath, http_header_t *response_header_data, stru
 
     // content-range
     if ((start != -2) && (end != -2)) { /* for partial content */
-        size = strlen(http_header_field_list[8]) + sizeof(int)*3 + strlen("bytes -/\r\n") + 1;
+        size = strlen(http_header_field_list[8]) + sizeof (int)*3 + strlen("bytes -/\r\n") + 1;
         response_header_data->content_range = malloc(size);
-        int endOfRange = fstat.st_size-1;
-        snprintf(response_header_data->content_range, size, "%sbytes %d-%d/%d\r\n", http_header_field_list[8], start, endOfRange, (int)fstat.st_size);
-        
+        int endOfRange = fstat.st_size - 1;
+        snprintf(response_header_data->content_range, size, "%sbytes %d-%d/%d\r\n", http_header_field_list[8], start, endOfRange, (int) fstat.st_size);
+
         int size = strlen(http_header_field_list[3]) + sizeof (int) +strlen("\r\n") + 1;
         int range_length = fstat.st_size - start;
         response_header_data->content_length = malloc(size);
@@ -593,7 +593,7 @@ handle_client(int sd, prog_options_t *server, struct sockaddr_in client) {
     if (parsed_header.isCGI) {
         pid_t pid; /* process id */
         int link[2];
-        char foo[4096];
+        char buffer[4096];
         //safe_printf("Tinyweb CGI\n");
         /*
          * Check executable, only on success go on
@@ -630,8 +630,8 @@ handle_client(int sd, prog_options_t *server, struct sockaddr_in client) {
                  * TODO: Socket Descriptor, wait for Child and return Status
                  */
                 close(link[1]);
-                //int nbytes = read(link[0], foo, sizeof (foo));
-                //safe_printf("Output: (%.*s)\n", nbytes, foo);
+                int nbytes = read(link[0], buffer, sizeof (buffer));
+                safe_printf("Output: (%.*s)\n", nbytes, buffer);
                 /*
                  * TODO
                  * In foo steht das Ergebnis
@@ -642,14 +642,58 @@ handle_client(int sd, prog_options_t *server, struct sockaddr_in client) {
                  */
 
                 wait(NULL);
-                response_header_data.status = http_status_list[0];
-                response_header_data.content_length = (char *)strlen(foo);
-                response_header_data.content_type = "text/html";
+
+                //=============================
+                //Copied from http://www.thegeekstuff.com/2012/06/c-temporary-files/
+                //===============================
+
+                // buffer to hold the temporary file name
+                char nameBuff[32];
+                // buffer to hold data to be written/read to/from temporary file
+                //char buffer[24];
+                int filedes = -1;
+
+                // memset the buffers to 0
+                memset(nameBuff, 0, sizeof (nameBuff));
+                //memset(buffer, 0, sizeof (buffer));
+
+                // Copy the relevant information in the buffers
+                strncpy(nameBuff, "/tmp/myTmpFile-XXXXXX", 21);
+                //strncpy(buffer, "Hello World", 11);
+
+                errno = 0;
+                // Create the temporary file, this function will replace the 'X's
+                filedes = mkstemp(nameBuff);
+
+                // Call unlink so that whenever the file is closed or the program exits
+                // the temporary file is deleted
+                unlink(nameBuff);
+
+                if (filedes < 1) {
+                    safe_printf("\n Creation of temp file failed with error [%s]\n", strerror(errno));
+                    return 1;
+                } else {
+                    safe_printf("\n Temporary file [%s] created\n", nameBuff);
+                }
+
+                errno = 0;
+                // Write some data to the temporary file
+                if (-1 == write(filedes, buffer, strlen(buffer))) {
+                    safe_printf("\n write failed with error [%s]\n", strerror(errno));
+                    return 1;
+                }
+
+                safe_printf("\n Data written to temporary file is [%s]\n", buffer);
+
+
+                //=============================
+                //END of Copy
+                //===============================
+
+                create_response_header(nameBuff, &response_header_data, fstat, parsed_header.byteStart, parsed_header.byteEnd);
                 create_response_header_string(response_header_data, server_header);
                 write_response_header(sd, server_header, server);
-                if (write(sd, foo, strlen(foo) - 1) < 0) {
-                    printf("%s\n", "Writing to the client went wrong!");
-                }
+                write_response_body(sd, filepath, server, parsed_header.byteStart, parsed_header.byteEnd);
                 //exit(EXIT_SUCCESS);
             } else {
                 /* 
