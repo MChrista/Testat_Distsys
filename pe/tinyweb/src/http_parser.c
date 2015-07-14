@@ -170,15 +170,15 @@ parse_http_header(char *header) {
                     //Check Status
                     if (startValue == -1 && endValue > 0) {
                         parsed_header.httpState = HTTP_STATUS_PARTIAL_CONTENT;
-                        safe_printf("Partial Content\n");
+                        //safe_printf("Partial Content\n");
                     } else if (startValue >= 0 && endValue == -1) {
                         parsed_header.httpState = HTTP_STATUS_PARTIAL_CONTENT;
-                        safe_printf("Partial Content\n");
+                        //safe_printf("Partial Content\n");
                     } else if (startValue >= 0 && endValue > 0 && startValue < endValue) {
                         parsed_header.httpState = HTTP_STATUS_PARTIAL_CONTENT;
-                        safe_printf("Partial Content\n");
+                        //safe_printf("Partial Content\n");
                     }
-                    safe_printf("Range:\nValue 1: %d\nValue 2: %d\n\n",startValue,endValue);
+                    //safe_printf("Range:\nValue 1: %d\nValue 2: %d\n\n",startValue,endValue);
 
                 } //end of parsing range
 
