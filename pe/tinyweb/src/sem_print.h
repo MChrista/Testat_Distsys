@@ -13,7 +13,7 @@
 #include <semaphore.h>
 
 
-extern void init_logging_semaphore(void);
+extern void init_logging_semaphore(prog_options_t *server);
 extern void set_verbosity_level(unsigned short level);
 extern int print_log(const char *format, ...);
 extern int print_debug(const char *format, ...);

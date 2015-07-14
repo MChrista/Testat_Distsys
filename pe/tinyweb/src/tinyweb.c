@@ -433,7 +433,7 @@ create_response_header_string(http_header_t response_header_data, char* response
 }
 
 static int
-write_log(parsed_http_header_t parsed_header, struct sockaddr_in client, char* filepath, char* response_header_string, struct stat fstat, int start, int end) {
+write_log(parsed_http_header_t parsed_header, struct sockaddr_in client, char* filepath, char* response_header_string, struct stat fstat, int start, int end, prog_options_t *server) {
     /*
      * write log
      */
@@ -452,12 +452,24 @@ write_log(parsed_http_header_t parsed_header, struct sockaddr_in client, char* f
     // Port
     int portNumber = ntohs(client.sin_port);
     int size = strlen(response_header_string);
-    if ((start != -2) && (end != -2)) { /* for partial requests only */
-        size += fstat.st_size - start;
-        safe_printf("%s:%d - - [%s] \"%-7s %s %s\" %d %d\n", str, portNumber, date, parsed_header.method, filepath, parsed_header.protocol, http_status_list[parsed_header.httpState].code, size);
-    } else { /* every other request */
-        size += fstat.st_size;
-        safe_printf("%s:%d - - [%s] \"%-7s %s %s\" %d %d\n", str, portNumber, date, parsed_header.method, filepath, parsed_header.protocol, http_status_list[parsed_header.httpState].code, size);
+    if (strcmp(server->log_filename, "-")) { /* write to stdout*/
+        safe_printf("%s\n", "writing to stdout!");
+        if ((start != -2) && (end != -2)) { /* for partial requests only */
+            size += fstat.st_size - start;
+            safe_printf("%s:%d - - [%s] \"%-7s %s %s\" %d %d\n", str, portNumber, date, parsed_header.method, filepath, parsed_header.protocol, http_status_list[parsed_header.httpState].code, size);
+        } else { /* every other request */
+            size += fstat.st_size;
+            safe_printf("%s:%d - - [%s] \"%-7s %s %s\" %d %d\n", str, portNumber, date, parsed_header.method, filepath, parsed_header.protocol, http_status_list[parsed_header.httpState].code, size);
+        }
+    } else { /* write to log file*/
+        safe_printf("%s\n", "i should write to a log file...");
+        if ((start != -2) && (end != -2)) { /* for partial requests only */
+            size += fstat.st_size - start;
+            print_log("%s:%d - - [%s] \"%-7s %s %s\" %d %d\n", str, portNumber, date, parsed_header.method, filepath, parsed_header.protocol, http_status_list[parsed_header.httpState].code, size);
+        } else { /* every other request */
+            size += fstat.st_size;
+            print_log("%s:%d - - [%s] \"%-7s %s %s\" %d %d\n", str, portNumber, date, parsed_header.method, filepath, parsed_header.protocol, http_status_list[parsed_header.httpState].code, size);
+        }
     }
     return 0;
 }
@@ -509,31 +521,31 @@ handle_client(int sd, prog_options_t *server, struct sockaddr_in client) {
             //safe_printf("%s\n", "internal server error");
             response_header_data.status = http_status_list[8];
             create_response_header_string(response_header_data, server_header);
-            write_log(parsed_header, client, filepath, server_header, fstat,parsed_header.byteStart, parsed_header.byteEnd);
+            write_log(parsed_header, client, filepath, server_header, fstat,parsed_header.byteStart, parsed_header.byteEnd, server);
             return write_response_header(sd, server_header, server);
         case HTTP_STATUS_BAD_REQUEST:
             //safe_printf("%s\n", "bad request");
             response_header_data.status = http_status_list[4];
             create_response_header_string(response_header_data, server_header);
-            write_log(parsed_header, client, filepath, server_header, fstat,parsed_header.byteStart, parsed_header.byteEnd);
+            write_log(parsed_header, client, filepath, server_header, fstat,parsed_header.byteStart, parsed_header.byteEnd, server);
             return write_response_header(sd, server_header, server);
         case HTTP_STATUS_NOT_IMPLEMENTED:
             //safe_printf("%s\n", "not implemented");
             response_header_data.status = http_status_list[9];
             create_response_header_string(response_header_data, server_header);
-            write_log(parsed_header, client, filepath, server_header, fstat,parsed_header.byteStart, parsed_header.byteEnd);
+            write_log(parsed_header, client, filepath, server_header, fstat,parsed_header.byteStart, parsed_header.byteEnd, server);
             return write_response_header(sd, server_header, server);
         case HTTP_STATUS_RANGE_NOT_SATISFIABLE:
             response_header_data.status = http_status_list[7];
             create_response_header_string(response_header_data, server_header);
-            write_log(parsed_header, client, filepath, server_header, fstat,parsed_header.byteStart, parsed_header.byteEnd);
+            write_log(parsed_header, client, filepath, server_header, fstat,parsed_header.byteStart, parsed_header.byteEnd, server);
             return write_response_header(sd, server_header, server);
         case HTTP_STATUS_PARTIAL_CONTENT:
             if (parsed_header.byteStart >= fstat.st_size) { /* throw 416 */
                 //safe_printf("%s\n", "range not satisfiable");
                 response_header_data.status = http_status_list[7];
                 create_response_header_string(response_header_data, server_header);
-                write_log(parsed_header, client, filepath, server_header, fstat,parsed_header.byteStart, parsed_header.byteEnd);
+                write_log(parsed_header, client, filepath, server_header, fstat,parsed_header.byteStart, parsed_header.byteEnd, server);
                 return write_response_header(sd, server_header, server);
             }
             //safe_printf("%s\n", "partial content from tinyweb!");
@@ -541,7 +553,7 @@ handle_client(int sd, prog_options_t *server, struct sockaddr_in client) {
             create_response_header(filepath, &response_header_data, fstat, parsed_header.byteStart, parsed_header.byteEnd);
             create_response_header_string(response_header_data, server_header);
             write_response_header(sd, server_header, server);
-            write_log(parsed_header, client, filepath, server_header, fstat,parsed_header.byteStart, parsed_header.byteEnd);
+            write_log(parsed_header, client, filepath, server_header, fstat,parsed_header.byteStart, parsed_header.byteEnd, server);
             return write_response_body(sd, filepath, server, parsed_header.byteStart, parsed_header.byteEnd);
         default:
             break;
@@ -556,7 +568,7 @@ handle_client(int sd, prog_options_t *server, struct sockaddr_in client) {
     if (!(S_ISREG(fstat.st_mode)) && !(S_ISDIR(fstat.st_mode))) { /* 404 */
         response_header_data.status = http_status_list[6];
         create_response_header_string(response_header_data, server_header);
-        write_log(parsed_header, client, filepath, server_header, fstat,parsed_header.byteStart, parsed_header.byteEnd);
+        write_log(parsed_header, client, filepath, server_header, fstat,parsed_header.byteStart, parsed_header.byteEnd, server);
         return write_response_header(sd, server_header, server);
     } else if (S_ISDIR(fstat.st_mode)) { /* 301 */
         response_header_data.status = http_status_list[2];
@@ -564,7 +576,7 @@ handle_client(int sd, prog_options_t *server, struct sockaddr_in client) {
         response_header_data.content_location = malloc(size);
         snprintf(response_header_data.content_location, BUFSIZE, "%s%s%s\r\n", http_header_field_list[7], filepath, "/");
         create_response_header_string(response_header_data, server_header);
-        write_log(parsed_header, client, filepath, server_header, fstat,parsed_header.byteStart, parsed_header.byteEnd);
+        write_log(parsed_header, client, filepath, server_header, fstat,parsed_header.byteStart, parsed_header.byteEnd, server);
         return write_response_header(sd, server_header, server);
     } else if (parsed_header.modsince != 0) { /* 304 */
         int seconds;
@@ -572,7 +584,7 @@ handle_client(int sd, prog_options_t *server, struct sockaddr_in client) {
         if (seconds >= 0) {
             response_header_data.status = http_status_list[3];
             create_response_header_string(response_header_data, server_header);
-            write_log(parsed_header, client, filepath, server_header, fstat,parsed_header.byteStart, parsed_header.byteEnd);
+            write_log(parsed_header, client, filepath, server_header, fstat,parsed_header.byteStart, parsed_header.byteEnd, server);
             return write_response_header(sd, server_header, server);
         }
     }
@@ -650,7 +662,7 @@ handle_client(int sd, prog_options_t *server, struct sockaddr_in client) {
             //safe_printf("Not executable\n");
             response_header_data.status = http_status_list[5];
             create_response_header_string(response_header_data, server_header);
-            write_log(parsed_header, client, filepath, server_header, fstat,parsed_header.byteStart, parsed_header.byteEnd);
+            write_log(parsed_header, client, filepath, server_header, fstat,parsed_header.byteStart, parsed_header.byteEnd, server);
             return write_response_header(sd, server_header, server);
             exit(EXIT_FAILURE);
         }
@@ -666,20 +678,20 @@ handle_client(int sd, prog_options_t *server, struct sockaddr_in client) {
         create_response_header(filepath, &response_header_data, fstat, parsed_header.byteStart, parsed_header.byteEnd);
         create_response_header_string(response_header_data, server_header);
         write_response_header(sd, server_header, server);
-        write_log(parsed_header, client,filepath, server_header, fstat,parsed_header.byteStart, parsed_header.byteEnd);
+        write_log(parsed_header, client,filepath, server_header, fstat,parsed_header.byteStart, parsed_header.byteEnd, server);
         return write_response_body(sd, filepath, server, parsed_header.byteStart, parsed_header.byteEnd);
     } else { /* HEAD method */
         //safe_printf("%s\n", "HEAD");
         response_header_data.status = http_status_list[0];
         create_response_header(filepath, &response_header_data, fstat, parsed_header.byteStart, parsed_header.byteEnd);
         create_response_header_string(response_header_data, server_header);
-        write_log(parsed_header, client, filepath, server_header, fstat,parsed_header.byteStart, parsed_header.byteEnd);
+        write_log(parsed_header, client, filepath, server_header, fstat,parsed_header.byteStart, parsed_header.byteEnd, server);
         return write_response_header(sd, server_header, server);
     }
 
     response_header_data.status = http_status_list[8];
     create_response_header_string(response_header_data, server_header);
-    write_log(parsed_header, client, filepath, server_header, fstat,parsed_header.byteStart, parsed_header.byteEnd);
+    write_log(parsed_header, client, filepath, server_header, fstat,parsed_header.byteStart, parsed_header.byteEnd, server);
     return write_response_header(sd, server_header, server);
 
     return retcode;
@@ -767,7 +779,7 @@ main(int argc, char *argv[]) {
     open_logfile(&my_opt);
     check_root_dir(&my_opt);
     install_signal_handlers();
-    //init_logging_semaphore();
+    init_logging_semaphore(&my_opt);
 
     // create the server socket
     socketDescriptor = create_server_socket(&my_opt);

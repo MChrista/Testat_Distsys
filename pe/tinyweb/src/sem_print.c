@@ -16,6 +16,8 @@
 #include <fcntl.h>
 #include <semaphore.h>
 
+#include "tinyweb.h"
+
 
 #define SEM_NAME                  "/tinysem"
 #define err_print(s)              fprintf(stderr, "ERROR: %s, %s:%d\n", (s), __FILE__, __LINE__)
@@ -23,14 +25,16 @@
 
 static sem_t *log_sem = NULL;
 static unsigned short verbosity_level = 0;
+prog_options_t* _server;
 
 void
-init_logging_semaphore(void)
+init_logging_semaphore(prog_options_t *server)
 {
     if ((log_sem = sem_open(SEM_NAME, O_CREAT, S_IRUSR | S_IWUSR, 1)) == SEM_FAILED) {
         err_print("cannot create named semaphore");
         exit(EXIT_FAILURE);
     } /* end if */
+    _server = server;
 } /* end of set_logging_semaphore */
 
 
@@ -54,7 +58,7 @@ print_log(const char *format, ...)
     printf("[%d] ", getpid());
 
     va_start(args, format);
-    status = vprintf(format, args);
+    status = vfprintf(_server->log_fd, format, args);
     va_end(args);
 
     if (log_sem != NULL && sem_post(log_sem) < 0) {
