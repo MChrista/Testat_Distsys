@@ -619,6 +619,9 @@ handle_client(int sd, prog_options_t *server, struct sockaddr_in client) {
                 response_header_data.status = http_status_list[0];
                 create_response_header_string(response_header_data, server_header);
                 
+                int headerLength = strlen(server_header);
+                server_header[headerLength-2] = '\0';
+
                 fprintf(stdout, "%s", server_header);
                 //TODO: Change Path
                 execle("/bin/sh", "sh", "-c", "./web/cgi-bin/hello.pl", NULL, NULL);
