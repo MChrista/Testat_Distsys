@@ -616,17 +616,10 @@ handle_client(int sd, prog_options_t *server, struct sockaddr_in client) {
                 dup2(sd, STDOUT_FILENO);
                 close(sd);
 
-                // date
-                char timeString [80];
-                char date [50];
-                time_t rawtime;
-                struct tm * timeinfo;
-                time(&rawtime);
-                timeinfo = localtime(&rawtime);
-                strftime(timeString, 80, "%a, %d %b %Y %H:%M:%S", timeinfo);
-                snprintf(date, 50, "%s%s\r\n", http_header_field_list[0], timeString);
+                response_header_data.status = http_status_list[0];
+                create_response_header_string(response_header_data, server_header);
                 
-                fprintf(stdout, "HTTP/1.1 200 OK\r\n%s\r\nServer: tinyweb\r\n", date);
+                fprintf(stdout, "%s", server_header);
                 //TODO: Change Path
                 execle("/bin/sh", "sh", "-c", "./web/cgi-bin/hello.pl", NULL, NULL);
                 //execle("/bin/sh", "sh", "-c", cCgiCommand_p, (char) NULL, (char) NULL);
