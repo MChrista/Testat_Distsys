@@ -455,16 +455,7 @@ write_log(parsed_http_header_t parsed_header, struct sockaddr_in client, char* f
     // Port
     int portNumber = ntohs(client.sin_port);
     int size = strlen(response_header_string);
-    if (strcmp(server->log_filename, "-")) { /* write to stdout*/
-        safe_printf("%s\n", "writing to stdout!");
-        if ((start != -2) && (end != -2)) { /* for partial requests only */
-            size += fstat.st_size - start;
-            safe_printf("%s:%d - - [%s] \"%-7s %s %s\" %d %d\n", str, portNumber, date, parsed_header.method, filepath, parsed_header.protocol, http_status_list[parsed_header.httpState].code, size);
-        } else { /* every other request */
-            size += fstat.st_size;
-            safe_printf("%s:%d - - [%s] \"%-7s %s %s\" %d %d\n", str, portNumber, date, parsed_header.method, filepath, parsed_header.protocol, http_status_list[parsed_header.httpState].code, size);
-        }
-    } else { /* write to log file*/
+    if (server->log_filename != NULL && strcmp(server->log_filename, "-") != 0) { /* write to logfile*/
         safe_printf("%s\n", "i should write to a log file...");
         if ((start != -2) && (end != -2)) { /* for partial requests only */
             size += fstat.st_size - start;
@@ -472,6 +463,15 @@ write_log(parsed_http_header_t parsed_header, struct sockaddr_in client, char* f
         } else { /* every other request */
             size += fstat.st_size;
             print_log("%s:%d - - [%s] \"%-7s %s %s\" %d %d\n", str, portNumber, date, parsed_header.method, filepath, parsed_header.protocol, http_status_list[parsed_header.httpState].code, size);
+        }
+    } else { /* write to stdout*/
+        safe_printf("%s\n", "writing to stdout!");
+        if ((start != -2) && (end != -2)) { /* for partial requests only */
+            size += fstat.st_size - start;
+            safe_printf("%s:%d - - [%s] \"%-7s %s %s\" %d %d\n", str, portNumber, date, parsed_header.method, filepath, parsed_header.protocol, http_status_list[parsed_header.httpState].code, size);
+        } else { /* every other request */
+            size += fstat.st_size;
+            safe_printf("%s:%d - - [%s] \"%-7s %s %s\" %d %d\n", str, portNumber, date, parsed_header.method, filepath, parsed_header.protocol, http_status_list[parsed_header.httpState].code, size);
         }
     }
     return 0;
@@ -508,18 +508,6 @@ handle_client(int sd, prog_options_t *server, struct sockaddr_in client) {
     read_from_socket(sd, client_header, BUFSIZE, server->timeout);
     parsed_header = parse_http_header(client_header);
 
-    strcpy(filepath, server->root_dir);
-    strcat(filepath, parsed_header.filename);
-    //snprintf(filepath, BUFSIZE, "%s%s", server->root_dir, parsed_header.filename);
-    safe_printf("Filepath in handle client: %s\n", filepath);
-
-    retcode = stat(filepath, &fstat);
-    if (retcode) {
-        response_header_data.status = http_status_list[6];
-        create_response_header_string(response_header_data, server_header);
-        write_log(parsed_header, client, filepath, server_header, fstat, parsed_header.byteStart, parsed_header.byteEnd, server);
-        return write_response_header(sd, server_header, server);
-    }
     // check on parsed http status
     //TODO HTTP_RANGE_NOT_SATISFIABLE handeln
     switch (parsed_header.httpState) {
@@ -541,6 +529,24 @@ handle_client(int sd, prog_options_t *server, struct sockaddr_in client) {
             create_response_header_string(response_header_data, server_header);
             write_log(parsed_header, client, filepath, server_header, fstat, parsed_header.byteStart, parsed_header.byteEnd, server);
             return write_response_header(sd, server_header, server);
+        default:
+            break;
+    }
+    
+    strcpy(filepath, server->root_dir);
+    strcat(filepath, parsed_header.filename);
+    //snprintf(filepath, BUFSIZE, "%s%s", server->root_dir, parsed_header.filename);
+    safe_printf("Filepath in handle client: %s\n", filepath);
+
+    retcode = stat(filepath, &fstat);
+    if (retcode) {
+        response_header_data.status = http_status_list[6];
+        create_response_header_string(response_header_data, server_header);
+        write_log(parsed_header, client, filepath, server_header, fstat, parsed_header.byteStart, parsed_header.byteEnd, server);
+        return write_response_header(sd, server_header, server);
+    }
+
+    switch(parsed_header.httpState) {
         case HTTP_STATUS_RANGE_NOT_SATISFIABLE:
             response_header_data.status = http_status_list[7];
             create_response_header_string(response_header_data, server_header);
