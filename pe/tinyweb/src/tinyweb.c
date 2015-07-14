@@ -36,6 +36,8 @@
 #include "http.h"
 #include "socket_io.h"
 
+extern char **environ;
+
 // Must be true for the server accepting clients,
 // otherwise, the server will terminate
 static volatile sig_atomic_t server_running = false;
@@ -616,6 +618,8 @@ handle_client(int sd, prog_options_t *server, struct sockaddr_in client) {
                 dup2(link[1], STDOUT_FILENO);
                 close(link[0]);
                 close(link[1]);
+ 
+                fprintf(stdout, "HTTP/1.1 200 OK\r\nDate: Tue, 14 Jul 2015 16:55:47\r\nServer: Tinyweb 1.1\r\n");
                 //TODO: Change Path
                 execle("/bin/sh", "sh", "-c", "./web/cgi-bin/hello.pl", NULL, NULL);
                 //execle("/bin/sh", "sh", "-c", cCgiCommand_p, (char) NULL, (char) NULL);
@@ -689,12 +693,12 @@ handle_client(int sd, prog_options_t *server, struct sockaddr_in client) {
                 //=============================
                 //END of Copy
                 //===============================
-
+                response_header_data.status = http_status_list[0];
                 create_response_header(nameBuff, &response_header_data, fstat, parsed_header.byteStart, parsed_header.byteEnd);
                 create_response_header_string(response_header_data, server_header);
                 write_response_header(sd, server_header, server);
                 write_response_body(sd, filepath, server, parsed_header.byteStart, parsed_header.byteEnd);
-                //exit(EXIT_SUCCESS);
+                exit(EXIT_SUCCESS);
             } else {
                 /* 
                  * error while forking 
