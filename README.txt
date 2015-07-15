@@ -1,6 +1,22 @@
-Michael Christa, Florian Hink
+Autoren: Michael Christa, Florian Hink
+Datum: 15.07.2015
+Letzte Änderung: 15.07.2015
 
-verwendete Quellen:
+Arbeitsaufteilung:
+Michael Christa hat den Parser bearbeitet und hat dann in der Implementierung der Tinyweb unterstützt.
+Florian Hink entwickelte eine Struktur für die Tinyweb und implementierte dort. 
+
+Hinweise zum Programm:
+- Es wurde ein HTTP Server entwickelt.
+- Es werden nicht alle mallocs überprüft
+Parser:
+- Statusline, cgi und range werden anhand von regulären Ausdrücken geparst.
+	-> Damit ist die Struktur für strtok klar
+
+Tinyweb:
+
+
+Verwendete Quellen:
 Man pages:
 - man 2 bind
 - man 3 getaddrinfo
@@ -20,9 +36,5 @@ Man pages:
 - man 2 send
 - man 3 strcat
 
-hauptsächlich bearbeitet:
-1.) 	Florian Hink
-2.) 	Florian Hink
-8.) 	Florian Hink
-9.) 	Florian Hink
-11.) 	Florian Hink
+Absprachen:
+Rücksprachen mit den Gruppen 1 und 4. 
