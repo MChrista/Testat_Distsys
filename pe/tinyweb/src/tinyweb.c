@@ -263,6 +263,13 @@ create_server_socket(prog_options_t *server) {
     return sfd;
 } /* end of create_server_socket */
 
+/**
+ * write response header to the client
+ * @input_param     the socket descriptor
+ * @input_param     the response header string
+ * @input_param     the program options
+ * @return          unequal zero in case of error
+ */
 static int
 write_response_header(int sd, char *response_header_string, prog_options_t *server) {
     int retcode;
@@ -279,8 +286,17 @@ write_response_header(int sd, char *response_header_string, prog_options_t *serv
 
     // TODO: return something different than 0
     return 0;
-}
+} /* end of write_response_header */
 
+/*
+ * write the response body to client
+ * @input_param     the socket descriptor
+ * @input_param     the path to the requested file
+ * @input_param     the program options
+ * @input_param     the start of partial content
+ * @input_param     the end of partial content
+ * @return          unequal zero in case of error
+ */
 static int
 write_response_body(int sd, char *filepath, prog_options_t *server, int start, int end) {
     int retcode;
@@ -332,7 +348,7 @@ write_response_body(int sd, char *filepath, prog_options_t *server, int start, i
     }
 
     return retcode;
-}
+} /* end of write_response_body */
 
 static int
 create_response_header(char *filepath, http_header_t *response_header_data, struct stat fstat, int start, int end) {
@@ -378,8 +394,14 @@ create_response_header(char *filepath, http_header_t *response_header_data, stru
 
     // TODO: return retcode instead of 0
     return 0;
-}
+} /* end of create_response_header */
 
+/**
+ * create the response header string
+ * @input_param     the response header data
+ * @output_param    the response header string
+ * @return          unequal zero in case of error
+ */
 static int
 create_response_header_string(http_header_t response_header_data, char* response_header_string) {
     // status
@@ -429,8 +451,20 @@ create_response_header_string(http_header_t response_header_data, char* response
     strcat(response_header_string, "\r\n");
     //safe_printf("Response Header\n%s\n\n", response_header_string);
     return 0;
-}
+} /* end of create_response_header_string */
 
+/**
+ * write log to stdout or log file
+ * @input_param     the parsed http header
+ * @input_param     the client info
+ * @input_param     the path to requested file
+ * @input_param     the response header string
+ * @input_param     the file status
+ * @input_param     the start of partial content
+ * @input_param     the end of partial content
+ * @input_param     the program options
+ * @return          unequal zero in case of error
+ */
 static int
 write_log(parsed_http_header_t parsed_header, struct sockaddr_in client, char* filepath, char* response_header_string, struct stat fstat, int start, int end, prog_options_t *server) {
     /*
@@ -455,29 +489,29 @@ write_log(parsed_http_header_t parsed_header, struct sockaddr_in client, char* f
         // safe_printf("%s\n", "i should write to a log file...");
         if ((start != -2) && (end != -2)) { /* for partial requests only */
             size += fstat.st_size - start;
-            print_log("%s:%d - - [%s] \"%-7s %s %s\" %d %d\n", str, portNumber, date, parsed_header.method, filepath, parsed_header.protocol, http_status_list[parsed_header.httpState].code, size);
+            print_log("[%d] %s:%d - - [%s] \"%-7s %s %s\" %d %d\n", getpid(), str, portNumber, date, parsed_header.method, filepath, parsed_header.protocol, http_status_list[parsed_header.httpState].code, size);
         } else { /* every other request */
             size += fstat.st_size;
-            print_log("%s:%d - - [%s] \"%-7s %s %s\" %d %d\n", str, portNumber, date, parsed_header.method, filepath, parsed_header.protocol, http_status_list[parsed_header.httpState].code, size);
+            print_log("[%d] %s:%d - - [%s] \"%-7s %s %s\" %d %d\n", getpid(), str, portNumber, date, parsed_header.method, filepath, parsed_header.protocol, http_status_list[parsed_header.httpState].code, size);
         }
     } else { /* write to stdout*/
         // safe_printf("%s\n", "writing to stdout!");
         if ((start != -2) && (end != -2)) { /* for partial requests only */
             size += fstat.st_size - start;
-            safe_printf("%s:%d - - [%s] \"%-7s %s %s\" %d %d\n", str, portNumber, date, parsed_header.method, filepath, parsed_header.protocol, http_status_list[parsed_header.httpState].code, size);
+            safe_printf("[%d] %s:%d - - [%s] \"%-7s %s %s\" %d %d\n", getpid(), str, portNumber, date, parsed_header.method, filepath, parsed_header.protocol, http_status_list[parsed_header.httpState].code, size);
         } else { /* every other request */
             size += fstat.st_size;
-            safe_printf("%s:%d - - [%s] \"%-7s %s %s\" %d %d\n", str, portNumber, date, parsed_header.method, filepath, parsed_header.protocol, http_status_list[parsed_header.httpState].code, size);
+            safe_printf("[%d] %s:%d - - [%s] \"%-7s %s %s\" %d %d\n", getpid(), str, portNumber, date, parsed_header.method, filepath, parsed_header.protocol, http_status_list[parsed_header.httpState].code, size);
         }
     }
     return 0;
-}
+} /*end of write_log */
 
 /**
  * Handle clients.
- * @param   the socket descriptor to read on
- * @param   the program options
- * @return  on error -1 is returned
+ * @input_param     the socket descriptor to read on
+ * @input_param     the program options
+ * @return          on error -1 is returned
  */
 static int
 handle_client(int sd, prog_options_t *server, struct sockaddr_in client) {
@@ -569,6 +603,7 @@ handle_client(int sd, prog_options_t *server, struct sockaddr_in client) {
     //TODO 500 bei kind abschuss und bei negativem return wert von handle_client
     //TODO logging
     //TODO signal handling?!
+    //TODO return something different than 0
 
     // check for 404, 304, 301
     if (!(S_ISREG(fstat.st_mode)) && !(S_ISDIR(fstat.st_mode))) { /* 404 */
@@ -745,6 +780,12 @@ accept_client(int sd, prog_options_t *server) {
     return nsd;
 } /* end of accept_client */
 
+/**
+ * Main function
+ * @input_param     the argument counter
+ * @input_param     the arugment vector
+ * @return          the Exit Code  
+ */
 int
 main(int argc, char *argv[]) {
     int retcode = EXIT_SUCCESS;
