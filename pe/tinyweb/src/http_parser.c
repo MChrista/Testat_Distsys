@@ -31,13 +31,11 @@
 
 /**
  * parse the http header
- * @param 	the header as char array
- * @return 	the parsed header
+ * @param 	the header as char pointer
+ * @return 	the parsed header defined in http_parser.h
  */
 parsed_http_header_t
 parse_http_header(char *header) {
-
-
 
     parsed_http_header_t parsed_header;
 
@@ -48,9 +46,11 @@ parse_http_header(char *header) {
     parsed_header.byteStart = -2;
     parsed_header.byteEnd = -2;
 
-    char delimiter[] = " ";
-    char *pointer;
-    //TODO: fix the parsing function
+    char *pointer; /* Helds actual processing string */
+
+    /*
+     *  Create and compile regex to validate a correct status line
+     */
     regex_t exp;
     int rv = regcomp(&exp, "^\\(GET\\|HEAD\\|POST\\|PUT\\|DELETE\\|TRACE\\|CONNECT\\|OPTIONS\\|DUMMY\\)"
             "[[:blank:]]"
@@ -58,49 +58,70 @@ parse_http_header(char *header) {
             "[[:blank:]]"
             "HTTP/[[:digit:]][[:punct:]][[:digit:]]\r$", REG_NEWLINE);
     if (rv != 0) {
-        printf("regcomp failed with %d\n", rv);
+        err_print("ERROR: parser regex statusline compile");
+        parsed_header.httpState = HTTP_STATUS_INTERNAL_SERVER_ERROR;
+        return parsed_header;
     }
     regmatch_t matches[MAX_MATCHES];
     if (regexec(&exp, header, MAX_MATCHES, matches, 0) == 0) {
-        if (matches[0].rm_so == 0) {
+        if (matches[0].rm_so == 0) { /* Match begins von first char */
             regfree(&exp);
-            pointer = strtok(header, delimiter);
+            char delimiter[] = " ";
+            pointer = strtok(header, delimiter); /* pointer points to http method */
             parsed_header.method = malloc(strlen(pointer) + 1);
+            if (parsed_header.method == NULL) {
+                err_print("ERROR: cant allocate memory");
+                parsed_header.httpState = HTTP_STATUS_INTERNAL_SERVER_ERROR;
+                return parsed_header;
+            }
             strcpy(parsed_header.method, pointer);
-            pointer = strtok(NULL, delimiter);
-            if (strlen(pointer) == 1) {
+            pointer = strtok(NULL, delimiter); /* pointer points to requested file */
+            if (strlen(pointer) == 1) { /* If no file is requested */
                 parsed_header.filename = DEFAULT_HTML_PAGE;
             } else {
                 parsed_header.filename = malloc(strlen(pointer) + 1);
+                if (parsed_header.filename == NULL) {
+                    err_print("ERROR: cant allocate memory");
+                    parsed_header.httpState = HTTP_STATUS_INTERNAL_SERVER_ERROR;
+                    return parsed_header;
+                }
                 strcpy(parsed_header.filename, pointer);
-                safe_printf("Filename in Parser: %s\n", parsed_header.filename );
                 regex_t cgiReg;
                 int rv = regcomp(&cgiReg, "^/cgi-bin", REG_ICASE);
                 if (rv != 0) {
-                    safe_printf("regcomp failed with %d\n", rv);
+                    err_print("ERROR: parser regex cgi compile");
+                    parsed_header.httpState = HTTP_STATUS_INTERNAL_SERVER_ERROR;
+                    return parsed_header;
                 }
-                if (regexec(&cgiReg, parsed_header.filename, MAX_MATCHES, matches, 0) == 0){
+                if (regexec(&cgiReg, parsed_header.filename, MAX_MATCHES, matches, 0) == 0) {
                     parsed_header.isCGI = TRUE;
                 }
             }
-            pointer = strtok(NULL, "\r");
+            pointer = strtok(NULL, "\r"); /* \r is char before end */
             parsed_header.protocol = malloc(strlen(pointer) + 1);
+            if (parsed_header.protocol == NULL) {
+                    err_print("ERROR: cant allocate memory");
+                    parsed_header.httpState = HTTP_STATUS_INTERNAL_SERVER_ERROR;
+                    return parsed_header;
+                }
             strcpy(parsed_header.protocol, pointer);
 
             if (strcmp(parsed_header.protocol, "HTTP/1.1") != 0) { //the only allowed Header
                 parsed_header.httpState = HTTP_STATUS_BAD_REQUEST;
+                return parsed_header;
             } else if (!((strcmp(parsed_header.method, "GET") == 0) || (strcmp(parsed_header.method, "HEAD") == 0))) {
                 parsed_header.httpState = HTTP_STATUS_NOT_IMPLEMENTED;
+                return parsed_header;
             } else {
                 //Status line is correct
                 parsed_header.httpState = HTTP_STATUS_OK;
             }
-            /*
-             * TODO: Handle other Header Fields
-             * RANGE
-             * 
-             */
+            //End of parsing status line
 
+            //Start of parsing further header lines
+            /*
+             * Create and compile regex to parse range line
+             */
             regex_t rangeRegex;
             int rv = regcomp(&rangeRegex, "^Range"
                     "[[:blank:]]\\{0,\\}"
@@ -113,14 +134,17 @@ parse_http_header(char *header) {
                     "\\)", REG_ICASE);
 
             if (rv != 0) {
-                safe_printf("regcomp failed with %d\n", rv);
+                err_print("ERROR: parser regex range compile");
+                parsed_header.httpState = HTTP_STATUS_INTERNAL_SERVER_ERROR;
+                return parsed_header;
             }
-            //char *rangeTest = "Range: bytes=700-500";
 
-            //safe_printf("Anfrage\n",pointer);
+            /*
+             * Check for further Header lines
+             * If-Modified-Since and Range is implemented
+             */
             pointer = strtok(NULL, "\n");
             while (pointer != NULL) {
-                //safe_printf("%s\n",pointer);
                 struct tm tm;
                 char *ret = strptime(pointer, "If-Modified-Since: %a, %d %b %Y %H:%M:%S", &tm);
                 if (ret != NULL) {
@@ -129,19 +153,19 @@ parse_http_header(char *header) {
                 }
 
                 if (regexec(&rangeRegex, pointer, MAX_MATCHES, matches, 0) == 0) {
-                    //safe_printf("begin: %d end: %d\n", matches[0].rm_so, matches[0].rm_eo);
-                    //safe_printf("Headerzeile:\n%s\n",pointer);
-                    int matchEnd = matches[0].rm_eo;
+                    int matchEnd = matches[0].rm_eo; /* Get Index of last matching char */
                     int i = 0;
-                    int pos = 1;
-                    int startValue = -1;
-                    int endValue = -1;
-                    int c = (int) (pointer[matchEnd - i - 1] - '0');
-                    if(c >= 0 && c <= 9){
+                    int pos = 1; /* Parameter to set chars to right position */
+                    int startValue = -1; /* -1 is not set */
+                    int endValue = -1; /* -1 is not set */
+
+                    int c = (int) (pointer[matchEnd - i - 1] - '0'); /* get last char */
+
+                    if (c >= 0 && c <= 9) { /* If second value is set, change value to zero */
                         endValue = 0;
                     }
                     //last char is either a "-" or a digit
-                    while (c >= 0 && c <= 9) {
+                    while (c >= 0 && c <= 9) { /* while Digit */
                         int temp = c;
                         endValue = endValue + temp * pos;
                         i++;
@@ -150,75 +174,41 @@ parse_http_header(char *header) {
                     }
                     //Increase Index, because of -
                     i++;
-                    pos = 1;
+                    pos = 1; /* Reset positon parameter for first value */
                     c = (int) (pointer[matchEnd - i - 1] - '0');
-                    if(c >= 0 && c <= 9){
+                    if (c >= 0 && c <= 9) {
                         startValue = 0;
                     }
-                    while (c >= 0 && c <= 9) {
+                    while (c >= 0 && c <= 9) { /* Get first value */
                         int temp = c;
                         startValue = startValue + temp * pos;
                         i++;
                         pos = pos * 10;
                         c = (int) (pointer[matchEnd - i - 1] - '0');
                     }
-                    //safe_printf("Startvalue %d", startValue);
-                    //safe_printf("Endvalue %d", endValue);
 
+                    /* Write data for return*/
                     parsed_header.httpState = HTTP_STATUS_RANGE_NOT_SATISFIABLE;
                     parsed_header.byteStart = startValue;
                     parsed_header.byteEnd = endValue;
+
                     //Check Status
                     if (startValue == -1 && endValue > 0) {
                         parsed_header.httpState = HTTP_STATUS_PARTIAL_CONTENT;
-                        //safe_printf("Partial Content\n");
                     } else if (startValue >= 0 && endValue == -1) {
                         parsed_header.httpState = HTTP_STATUS_PARTIAL_CONTENT;
-                        //safe_printf("Partial Content\n");
                     } else if (startValue >= 0 && endValue > 0 && startValue < endValue) {
                         parsed_header.httpState = HTTP_STATUS_PARTIAL_CONTENT;
-                        //safe_printf("Partial Content\n");
                     }
-                    //safe_printf("Range:\nValue 1: %d\nValue 2: %d\n\n",startValue,endValue);
-
                 } //end of parsing range
-
                 pointer = strtok(NULL, "\n");
             }
 
         } else {
-            safe_printf("Status line was false\n");
             parsed_header.httpState = HTTP_STATUS_BAD_REQUEST;
         }
     } else {
-        safe_printf("does not match\n");
         parsed_header.httpState = HTTP_STATUS_BAD_REQUEST;
     }
     return parsed_header;
 } /* end of parse_http_header */
-
-void parseHeaderField(char *str) {
-    /*
-     * Range - Wenn außerhalb dann 416 - bei erfolg 206
-     * If-Modified-Since - sonst 304 ohne ressource
-     * 
-     */
-
-    regex_t lastModRegex;
-    char *lastModStr = "^If-Modified-Since:[[:blank:]]";
-    char *lsz = "If-Modified-Since: Sat, 29 Oct 1994 19:43:31 GMT\n";
-    int lrv = regcomp(&lastModRegex, lastModStr, REG_ICASE);
-    if (lrv != 0) {
-        safe_printf("regcomp failed with %d\n", lrv);
-    }
-    regmatch_t matches[MAX_MATCHES];
-    if (regexec(&lastModRegex, lsz, MAX_MATCHES, matches, 0) == 0) {
-        //safe_printf("begin: %d end: %d", matches[0].rm_so, matches[0].rm_eo);
-    }
-
-
-
-
-
-
-}
