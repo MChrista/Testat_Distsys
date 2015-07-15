@@ -190,12 +190,16 @@ sig_handler(int sig) {
             break;
         case SIGCHLD:
             while (waitpid(-1, &status, WNOHANG) > 0) {
-                //safe_printf("terminated child\n");
-                //safe_printf("%d\n", status);
-                // TODO if status != 0 return 503?
             }
             break;
-            // TODO: Complete signal handler
+        case SIGSEGV:
+            safe_printf("\n[%d] Server terminated due to segmentation fault\n", getpid());
+            server_running = false;
+            break;
+        case SIGABRT:
+            safe_printf("\n[%d] Server terminated due to system abort\n", getpid());
+            server_running = false;
+            break;
         default:
             break;
     } /* end switch */
