@@ -97,8 +97,7 @@ get_options(int argc, char *argv[], prog_options_t *opt) {
             { NULL, 0, 0, 0}
         };
 
-        c = getopt_long(argc, argv, "f:p:d:h:v", long_options, &option_index);
-        // TODO: ausführlicher
+        c = getopt_long(argc, argv, "f:p:d:hv", long_options, &option_index);
         if (c == -1) break;
 
         switch (c) {
@@ -131,7 +130,6 @@ get_options(int argc, char *argv[], prog_options_t *opt) {
                 } /* end if */
                 break;
             case 'h':
-                print_usage("Tinyweb");
                 break;
             case 'v':
                 opt->verbose = 1;
