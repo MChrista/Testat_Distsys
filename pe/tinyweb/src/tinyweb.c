@@ -288,11 +288,8 @@ write_response_body(int sd, char *filepath, prog_options_t *server, int start, i
     int file; /* file descriptor of requested file */
     int chunkSize = 256; /* chunk size for write of message body */
 
-    safe_printf("%s\n", filepath);
-
     file = open(filepath, O_RDONLY);
     if (file < 0) {
-        safe_printf("Line 295");
         perror("ERROR: open()");
         return -1;
     } /* end if */
@@ -532,13 +529,11 @@ handle_client(int sd, prog_options_t *server, struct sockaddr_in client) {
         default:
             break;
     }
-    
+
     strcpy(filepath, server->root_dir);
     strcat(filepath, parsed_header.filename);
-    //snprintf(filepath, BUFSIZE, "%s%s", server->root_dir, parsed_header.filename);
-    safe_printf("Filepath in handle client: %s\n", filepath);
-
     retcode = stat(filepath, &fstat);
+
     if (retcode) {
         response_header_data.status = http_status_list[6];
         create_response_header_string(response_header_data, server_header);
@@ -546,7 +541,7 @@ handle_client(int sd, prog_options_t *server, struct sockaddr_in client) {
         return write_response_header(sd, server_header, server);
     }
 
-    switch(parsed_header.httpState) {
+    switch (parsed_header.httpState) {
         case HTTP_STATUS_RANGE_NOT_SATISFIABLE:
             response_header_data.status = http_status_list[7];
             create_response_header_string(response_header_data, server_header);
@@ -577,19 +572,12 @@ handle_client(int sd, prog_options_t *server, struct sockaddr_in client) {
     //TODO signal handling?!
 
     // check for 404, 304, 301
-    safe_printf("Boolean NOT ISREG: %d\n", !(S_ISREG(fstat.st_mode)));
-    safe_printf("Boolean NOT ISDIR: %d\n", !(S_ISDIR(fstat.st_mode)));
-    safe_printf("Boolean NOT IFDIR: %d\n", !(fstat.st_mode & S_IFDIR));
-    safe_printf("Boolean Combined: %d\n", (!(S_ISREG(fstat.st_mode)) && !(S_ISDIR(fstat.st_mode))));
     if (!(S_ISREG(fstat.st_mode)) && !(S_ISDIR(fstat.st_mode))) { /* 404 */
-        safe_printf("Not Found\n");
         response_header_data.status = http_status_list[6];
         create_response_header_string(response_header_data, server_header);
         write_log(parsed_header, client, filepath, server_header, fstat, parsed_header.byteStart, parsed_header.byteEnd, server);
         return write_response_header(sd, server_header, server);
     } else if (S_ISDIR(fstat.st_mode)) { /* 301 */
-        safe_printf("Filepath in 301: %s\n", filepath);
-        safe_printf("Directory\n");
         response_header_data.status = http_status_list[2];
         int size = strlen(http_header_field_list[7]) + strlen(filepath) + strlen("/\r\n") + 1;
         response_header_data.content_location = malloc(size);
@@ -613,7 +601,6 @@ handle_client(int sd, prog_options_t *server, struct sockaddr_in client) {
         pid_t pid; /* process id */
         //int link[2];
         //char buffer[4096];
-        safe_printf("Tinyweb CGI\n");
         /*
          * Check executable, only on success go on
          * Not Found 404
@@ -623,8 +610,12 @@ handle_client(int sd, prog_options_t *server, struct sockaddr_in client) {
          */
         if (fstat.st_mode & S_IEXEC) {
             char* execPath = malloc(strlen(filepath) + 3);
+            if (execPath == NULL) {
+                err_print("ERROR: cant allocate memory");
+            }
             strcpy(execPath, "./");
             strcat(execPath, filepath);
+
             pid = fork();
             if (pid == 0) {
                 /* 
@@ -637,56 +628,43 @@ handle_client(int sd, prog_options_t *server, struct sockaddr_in client) {
                 create_response_header_string(response_header_data, server_header);
 
                 int headerLength = strlen(server_header);
-                server_header[headerLength - 2] = '\0';
+                server_header[headerLength - 2] = '\0'; /* cut off one \r\n */
 
-                fprintf(stdout, "%s", server_header);
+                fprintf(stdout, "%s", server_header); /* print header */
                 execle("/bin/sh", "sh", "-c", execPath, NULL, NULL);
-                //execle("/bin/sh", "sh", "-c", cCgiCommand_p, (char) NULL, (char) NULL);
-                //execl("/usr/bin/who", "who", NULL);
                 exit(EXIT_SUCCESS);
 
                 //exit(EXIT_SUCCESS);
             } else if (pid > 0) {
+
                 /* 
                  * parent process 
-                 * 
-                 * TODO: Socket Descriptor, wait for Child and return Status
                  */
-
-                //int nbytes = read(sd, buffer, sizeof (buffer));
-                //safe_printf("Output: (%.*s)\n", nbytes, buffer);
-                /*
-                 * TODO
-                 * In foo steht das Ergebnis
-                 * HTTP 200
-                 * text/HTML
-                 * Reichen die Header Felder
-                 * Check wait for success
-                 */
-                wait(NULL);
+                int status;
+                wait(&status);
+                if (WIFEXITED(status) != 1) {
+                    err_print("ERROR: Execute cgi failed");
+                    return -1;
+                }
                 close(sd);
                 exit(EXIT_SUCCESS);
             } else {
                 /* 
                  * error while forking 
                  */
-                safe_printf("ERROR: fork()");
-                exit(EXIT_FAILURE);
+                err_print("ERROR: fork() in cgi");
+                return 1;
             }
-        } else { /* 403 */
-            //safe_printf("Not executable\n");
+        } else { /* 403 - Not executable*/
             response_header_data.status = http_status_list[5];
             create_response_header_string(response_header_data, server_header);
             write_log(parsed_header, client, filepath, server_header, fstat, parsed_header.byteStart, parsed_header.byteEnd, server);
             return write_response_header(sd, server_header, server);
-            exit(EXIT_FAILURE);
         }
     }
 
     // check on parsed http method
     if (strcmp(parsed_header.method, "GET") == 0) { /* GET method */
-        //safe_printf("%s\n", "GET");
-        //safe_printf("byteStart: %d\nbyteEnd: %d\n", parsed_header.byteStart, parsed_header.byteEnd);
         response_header_data.status = http_status_list[0];
         create_response_header(filepath, &response_header_data, fstat, parsed_header.byteStart, parsed_header.byteEnd);
         create_response_header_string(response_header_data, server_header);
@@ -694,7 +672,6 @@ handle_client(int sd, prog_options_t *server, struct sockaddr_in client) {
         write_log(parsed_header, client, filepath, server_header, fstat, parsed_header.byteStart, parsed_header.byteEnd, server);
         return write_response_body(sd, filepath, server, parsed_header.byteStart, parsed_header.byteEnd);
     } else { /* HEAD method */
-        //safe_printf("%s\n", "HEAD");
         response_header_data.status = http_status_list[0];
         create_response_header(filepath, &response_header_data, fstat, parsed_header.byteStart, parsed_header.byteEnd);
         create_response_header_string(response_header_data, server_header);
@@ -707,6 +684,7 @@ handle_client(int sd, prog_options_t *server, struct sockaddr_in client) {
     write_log(parsed_header, client, filepath, server_header, fstat, parsed_header.byteStart, parsed_header.byteEnd, server);
     return write_response_header(sd, server_header, server);
 
+    //TODO: Da kann scheiße drin stehen
     return retcode;
 } /* end of handle_client */
 
