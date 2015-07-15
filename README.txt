@@ -14,6 +14,9 @@ Parser:
 	-> Damit ist die Struktur für strtok klar
 
 Tinyweb:
+- Es wird ein Socket aufgemacht bei dem auf Verbindungen von Clients angenommen werden.
+- In der handle_client wird nach der Art des Requests unterschieden.
+- Es wird eine Antwort entsprechend des Requests generiert und zurückgeschickt.
 
 
 Verwendete Quellen:
