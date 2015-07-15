@@ -36,7 +36,6 @@
 #include "http.h"
 #include "socket_io.h"
 
-//extern char **environ;
 
 // Must be true for the server accepting clients,
 // otherwise, the server will terminate
@@ -684,8 +683,6 @@ handle_client(int sd, prog_options_t *server, struct sockaddr_in client) {
     write_log(parsed_header, client, filepath, server_header, fstat, parsed_header.byteStart, parsed_header.byteEnd, server);
     return write_response_header(sd, server_header, server);
 
-    //TODO: Da kann scheiße drin stehen
-    return retcode;
 } /* end of handle_client */
 
 /**
