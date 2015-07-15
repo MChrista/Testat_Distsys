@@ -453,7 +453,7 @@ write_log(parsed_http_header_t parsed_header, struct sockaddr_in client, char* f
     int portNumber = ntohs(client.sin_port);
     int size = strlen(response_header_string);
     if (server->log_filename != NULL && strcmp(server->log_filename, "-") != 0) { /* write to logfile*/
-        safe_printf("%s\n", "i should write to a log file...");
+        // safe_printf("%s\n", "i should write to a log file...");
         if ((start != -2) && (end != -2)) { /* for partial requests only */
             size += fstat.st_size - start;
             print_log("%s:%d - - [%s] \"%-7s %s %s\" %d %d\n", str, portNumber, date, parsed_header.method, filepath, parsed_header.protocol, http_status_list[parsed_header.httpState].code, size);
@@ -462,7 +462,7 @@ write_log(parsed_http_header_t parsed_header, struct sockaddr_in client, char* f
             print_log("%s:%d - - [%s] \"%-7s %s %s\" %d %d\n", str, portNumber, date, parsed_header.method, filepath, parsed_header.protocol, http_status_list[parsed_header.httpState].code, size);
         }
     } else { /* write to stdout*/
-        safe_printf("%s\n", "writing to stdout!");
+        // safe_printf("%s\n", "writing to stdout!");
         if ((start != -2) && (end != -2)) { /* for partial requests only */
             size += fstat.st_size - start;
             safe_printf("%s:%d - - [%s] \"%-7s %s %s\" %d %d\n", str, portNumber, date, parsed_header.method, filepath, parsed_header.protocol, http_status_list[parsed_header.httpState].code, size);
