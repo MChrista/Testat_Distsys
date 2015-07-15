@@ -43,6 +43,15 @@ static volatile sig_atomic_t server_running = false;
 
 #define IS_ROOT_DIR(mode)   (S_ISDIR(mode) && ((S_IROTH || S_IXOTH) & (mode)))
 
+static void
+print_usage(const char *progname) {
+    fprintf(stderr, "Usage: %s options\n%s%s%s%s", progname,
+            "\t-d\tthe directory of web files\n",
+            "\t-f\tthe logfile (if '-' or option not set; logging will be redirected to stdout\n",
+            "\t-p\tthe port logging is redirected to stdout.for the server\n",
+            "TIT12 Gruppe 7: Michael Christa, Florian Hink\n");
+} /* end of print_usage */
+
 static int
 get_options(int argc, char *argv[], prog_options_t *opt) {
     int c;
@@ -109,6 +118,7 @@ get_options(int argc, char *argv[], prog_options_t *opt) {
                     fprintf(stderr, "Cannot resolve service '%s': %s\n", optarg, gai_strerror(err));
                     return EXIT_FAILURE;
                 } /* end if */
+                opt->server_port = (int) ntohs(((struct sockaddr_in*) opt->server_addr->ai_addr)->sin_port);
                 break;
             case 'd':
                 // 'optarg contains root directory */
@@ -121,7 +131,7 @@ get_options(int argc, char *argv[], prog_options_t *opt) {
                 } /* end if */
                 break;
             case 'h':
-                // TODO: print out help
+                print_usage("Tinyweb");
                 break;
             case 'v':
                 opt->verbose = 1;
@@ -141,21 +151,12 @@ get_options(int argc, char *argv[], prog_options_t *opt) {
 } /* end of get_options */
 
 static void
-print_usage(const char *progname) {
-    fprintf(stderr, "Usage: %s options\n%s%s%s%s", progname,
-            "\t-d\tthe directory of web files\n",
-            "\t-f\tthe logfile (if '-' or option not set; logging will be redirected to stdout\n",
-            "\t-p\tthe port logging is redirected to stdout.for the server\n",
-            "TIT12 Gruppe 7: Michael Christa, Florian Hink\n");
-} /* end of print_usage */
-
-static void
 open_logfile(prog_options_t *opt) {
     // open logfile or redirect to stdout
     if (opt->log_filename != NULL && strcmp(opt->log_filename, "-") != 0) {
         opt->log_fd = fopen(opt->log_filename, "w");
         if (opt->log_fd == NULL) {
-            perror("ERROR: Cannot open logfile");
+            err_print("ERROR: Cannot open logfile");
             exit(EXIT_FAILURE);
         } /* end if */
     } else {
@@ -171,7 +172,7 @@ check_root_dir(prog_options_t *opt) {
     // check whether root directory is accessible
     if (stat(opt->root_dir, &stat_buf) < 0) {
         /* root dir cannot be found */
-        perror("ERROR: Cannot access root dir");
+        err_print("ERROR: Cannot access root dir");
         exit(EXIT_FAILURE);
     } else if (!IS_ROOT_DIR(stat_buf.st_mode)) {
         err_print("Root dir is not readable or not a directory");
@@ -210,12 +211,11 @@ install_signal_handlers(void) {
     struct sigaction sa;
 
     // init signal handler(s)
-    // TODO: add other signals
     sa.sa_flags = 0;
     sigemptyset(&sa.sa_mask);
     sa.sa_handler = sig_handler;
     if (sigaction(SIGINT, &sa, NULL) < 0) {
-        perror("sigaction(SIGINT)");
+        err_print("sigaction(SIGINT)");
         exit(EXIT_FAILURE);
     } /* end if */
 } /* end of install_signal_handlers */
@@ -237,7 +237,7 @@ create_server_socket(prog_options_t *server) {
      */
     sfd = socket(PF_INET, SOCK_STREAM, server->server_addr->ai_protocol);
     if (sfd < 0) {
-        perror("ERROR: server socket()");
+        err_print("ERROR: server socket()");
         return -1;
     } /* end if */
 
@@ -251,7 +251,7 @@ create_server_socket(prog_options_t *server) {
      */
     retcode = bind(sfd, server->server_addr->ai_addr, server->server_addr->ai_addrlen);
     if (retcode < 0) {
-        perror("ERROR: server bind()");
+        err_print("ERROR: server bind()");
         return -1;
     } /* end if */
 
@@ -260,7 +260,7 @@ create_server_socket(prog_options_t *server) {
      */
     retcode = listen(sfd, qlen);
     if (retcode < 0) {
-        perror("ERROR: server listen()");
+        err_print("ERROR: server listen()");
         return -1;
     } /* end if */
 
@@ -283,7 +283,7 @@ write_response_header(int sd, char *response_header_string, prog_options_t *serv
      */
     retcode = write_to_socket(sd, response_header_string, strlen(response_header_string), server->timeout);
     if (retcode < 0) {
-        perror("ERROR: write()");
+        err_print("ERROR: write()");
         return -1;
     } /* end if */
 
@@ -309,7 +309,7 @@ write_response_body(int sd, char *filepath, prog_options_t *server, int start, i
 
     file = open(filepath, O_RDONLY);
     if (file < 0) {
-        perror("ERROR: open()");
+        err_print("ERROR: open()");
         return -1;
     } /* end if */
 
@@ -325,7 +325,6 @@ write_response_body(int sd, char *filepath, prog_options_t *server, int start, i
             bytesToWrite = fstat.st_size;
         } else {
             bytesToWrite = end;
-            //safe_printf("\n%s\n", "removed one from bytesToWrite");
         }
 
         if (lseek(file, bytesWritten, SEEK_SET) < 0) {
@@ -365,8 +364,7 @@ create_response_header(char *filepath, http_header_t *response_header_data, stru
     int size = strlen(http_header_field_list[4]) + strlen(content_type_str) + strlen("\r\n") + 1;
     response_header_data->content_type = malloc(size);
     snprintf(response_header_data->content_type, size, "%s%s\r\n", http_header_field_list[4], content_type_str);
-    //snprintf(response_header_data.last_modified)
-    //safe_printf("Content Type: %s\n", response_header_data->content_type);
+
 
     struct tm * timeinfo;
     char timeString[80];
@@ -375,7 +373,6 @@ create_response_header(char *filepath, http_header_t *response_header_data, stru
     size = strlen(http_header_field_list[2]) + strlen(timeString) + strlen("\r\n") + 1;
     response_header_data->last_modified = malloc(size);
     snprintf(response_header_data->last_modified, size, "%s%s\r\n", http_header_field_list[2], timeString);
-    //safe_printf("Last modified: %s\n", response_header_data->last_modified);
 
     // content-range
     if ((start != -2) && (end != -2)) { /* for partial content */
@@ -393,7 +390,6 @@ create_response_header(char *filepath, http_header_t *response_header_data, stru
         size = strlen(http_header_field_list[3]) + sizeof (long long) +strlen("\r\n") + 1;
         response_header_data->content_length = malloc(size);
         snprintf(response_header_data->content_length, size, "%s%lld\r\n", http_header_field_list[3], (long long) fstat.st_size);
-        //safe_printf("Content length: %s\n", response_header_data->content_length);   
     }
 
     // TODO: return retcode instead of 0
@@ -411,7 +407,6 @@ create_response_header_string(http_header_t response_header_data, char* response
     // status
     snprintf(response_header_string, 50, "%s %hu %s\r\n", "HTTP/1.1", response_header_data.status.code, response_header_data.status.text);
 
-    //safe_printf("\n\nResponse header einstieg: %s\n", response_header_string);
     // server
     char server[30];
     snprintf(server, 30, "%s%s\r\n", http_header_field_list[1], "Tinyweb 1.1");
@@ -427,22 +422,18 @@ create_response_header_string(http_header_t response_header_data, char* response
     strftime(timeString, 80, "%a, %d %b %Y %H:%M:%S", timeinfo);
     snprintf(date, 50, "%s%s\r\n", http_header_field_list[0], timeString);
     strcat(response_header_string, date);
-    //safe_printf("\n\nResponse header date: \n%s\n", response_header_string);
-    //safe_printf("Content length: %s\n", response_header_data.content_length);
+
     if (response_header_data.content_length != NULL) {
         //content length
         strcat(response_header_string, response_header_data.content_length);
-        //safe_printf("content length\n", response_header_string);
     }
     if (response_header_data.content_type != NULL) {
         //content type
         strcat(response_header_string, response_header_data.content_type);
-        //safe_printf("content type\n", response_header_string);
     }
     if (response_header_data.last_modified != NULL) {
         //last modified
         strcat(response_header_string, response_header_data.last_modified);
-        //safe_printf("last modified\n", response_header_string);
     }
     if (response_header_data.content_location != NULL) {
         strcat(response_header_string, response_header_data.content_location);
@@ -450,10 +441,8 @@ create_response_header_string(http_header_t response_header_data, char* response
     if (response_header_data.content_range != NULL) {
         strcat(response_header_string, response_header_data.content_range);
     }
-    //safe_printf("\n\nResponse header end: %s\n", response_header_string);
     // end header
     strcat(response_header_string, "\r\n");
-    //safe_printf("Response Header\n%s\n\n", response_header_string);
     return 0;
 } /* end of create_response_header_string */
 
@@ -490,7 +479,6 @@ write_log(parsed_http_header_t parsed_header, struct sockaddr_in client, char* f
     int portNumber = ntohs(client.sin_port);
     int size = strlen(response_header_string);
     if (server->log_filename != NULL && strcmp(server->log_filename, "-") != 0) { /* write to logfile*/
-        // safe_printf("%s\n", "i should write to a log file...");
         if ((start != -2) && (end != -2)) { /* for partial requests only */
             size += fstat.st_size - start;
             print_log("[%d] %s:%d - - [%s] \"%-7s %s %s\" %d %d\n", getpid(), str, portNumber, date, parsed_header.method, filepath, parsed_header.protocol, http_status_list[parsed_header.httpState].code, size);
@@ -499,7 +487,6 @@ write_log(parsed_http_header_t parsed_header, struct sockaddr_in client, char* f
             print_log("[%d] %s:%d - - [%s] \"%-7s %s %s\" %d %d\n", getpid(), str, portNumber, date, parsed_header.method, filepath, parsed_header.protocol, http_status_list[parsed_header.httpState].code, size);
         }
     } else { /* write to stdout*/
-        // safe_printf("%s\n", "writing to stdout!");
         if ((start != -2) && (end != -2)) { /* for partial requests only */
             size += fstat.st_size - start;
             safe_printf("[%d] %s:%d - - [%s] \"%-7s %s %s\" %d %d\n", getpid(), str, portNumber, date, parsed_header.method, filepath, parsed_header.protocol, http_status_list[parsed_header.httpState].code, size);
@@ -543,22 +530,18 @@ handle_client(int sd, prog_options_t *server, struct sockaddr_in client) {
     parsed_header = parse_http_header(client_header);
 
     // check on parsed http status
-    //TODO HTTP_RANGE_NOT_SATISFIABLE handeln
     switch (parsed_header.httpState) {
         case HTTP_STATUS_INTERNAL_SERVER_ERROR:
-            //safe_printf("%s\n", "internal server error");
             response_header_data.status = http_status_list[8];
             create_response_header_string(response_header_data, server_header);
             write_log(parsed_header, client, filepath, server_header, fstat, parsed_header.byteStart, parsed_header.byteEnd, server);
             return write_response_header(sd, server_header, server);
         case HTTP_STATUS_BAD_REQUEST:
-            //safe_printf("%s\n", "bad request");
             response_header_data.status = http_status_list[4];
             create_response_header_string(response_header_data, server_header);
             write_log(parsed_header, client, filepath, server_header, fstat, parsed_header.byteStart, parsed_header.byteEnd, server);
             return write_response_header(sd, server_header, server);
         case HTTP_STATUS_NOT_IMPLEMENTED:
-            //safe_printf("%s\n", "not implemented");
             response_header_data.status = http_status_list[9];
             create_response_header_string(response_header_data, server_header);
             write_log(parsed_header, client, filepath, server_header, fstat, parsed_header.byteStart, parsed_header.byteEnd, server);
@@ -586,13 +569,11 @@ handle_client(int sd, prog_options_t *server, struct sockaddr_in client) {
             return write_response_header(sd, server_header, server);
         case HTTP_STATUS_PARTIAL_CONTENT:
             if (parsed_header.byteStart >= fstat.st_size) { /* throw 416 */
-                //safe_printf("%s\n", "range not satisfiable");
                 response_header_data.status = http_status_list[7];
                 create_response_header_string(response_header_data, server_header);
                 write_log(parsed_header, client, filepath, server_header, fstat, parsed_header.byteStart, parsed_header.byteEnd, server);
                 return write_response_header(sd, server_header, server);
             }
-            //safe_printf("%s\n", "partial content from tinyweb!");
             response_header_data.status = http_status_list[1];
             create_response_header(filepath, &response_header_data, fstat, parsed_header.byteStart, parsed_header.byteEnd);
             create_response_header_string(response_header_data, server_header);
@@ -602,12 +583,6 @@ handle_client(int sd, prog_options_t *server, struct sockaddr_in client) {
         default:
             break;
     }
-
-    //TODO check CGI
-    //TODO 500 bei kind abschuss und bei negativem return wert von handle_client
-    //TODO logging
-    //TODO signal handling?!
-    //TODO return something different than 0
 
     // check for 404, 304, 301
     if (!(S_ISREG(fstat.st_mode)) && !(S_ISDIR(fstat.st_mode))) { /* 404 */
@@ -641,10 +616,6 @@ handle_client(int sd, prog_options_t *server, struct sockaddr_in client) {
         //char buffer[4096];
         /*
          * Check executable, only on success go on
-         * Not Found 404
-         * Not Executable 403
-         * Output an Client
-         * 
          */
         if (fstat.st_mode & S_IEXEC) {
             char* execPath = malloc(strlen(filepath) + 3);
@@ -678,6 +649,7 @@ handle_client(int sd, prog_options_t *server, struct sockaddr_in client) {
                 /* 
                  * parent process 
                  */
+
                 int status;
                 wait(&status);
                 if (WIFEXITED(status) != 1) {
@@ -746,7 +718,7 @@ accept_client(int sd, prog_options_t *server) {
      */
     nsd = accept(sd, (struct sockaddr *) &client, &client_len);
     if (nsd < 0) {
-        perror("ERROR: server accept()");
+        err_print("ERROR: server accept()");
         return -1;
     }
 
@@ -757,14 +729,13 @@ accept_client(int sd, prog_options_t *server) {
          */
         retcode = close(sd);
         if (retcode < 0) {
-            perror("ERROR: child close()");
+            err_print("ERROR: child close()");
         } /* end if */
         retcode = handle_client(nsd, server, client);
         if (retcode < 0) {
-            perror("ERROR: child handle_client()");
+            err_print("ERROR: child handle_client()");
             exit(EXIT_FAILURE);
         } /* end if */
-        // TODO: muss man hier sd vom Kind schließen?!
         exit(EXIT_SUCCESS);
     } else if (pid > 0) {
         /* 
@@ -772,13 +743,13 @@ accept_client(int sd, prog_options_t *server) {
          */
         retcode = close(nsd);
         if (retcode < 0) {
-            perror("ERROR: parent close()");
+            err_print("ERROR: parent close()");
         } /* end if */
     } else {
         /* 
          * error while forking 
          */
-        safe_printf("ERROR: fork()");
+        err_print("ERROR: fork()");
     }
 
     return nsd;
@@ -817,23 +788,23 @@ main(int argc, char *argv[]) {
     // create the server socket
     socketDescriptor = create_server_socket(&my_opt);
     if (retcode < 0) {
-        perror("ERROR: creating socket()");
+        err_print("ERROR: creating socket()");
         exit(retcode);
     } /* end if */
 
     // here, as an example, show how to interact with the
     // condition set by the signal handler above
-    printf("[%d] Starting server '%s'...\n", getpid(), my_opt.progname);
+    safe_printf("[%d] Starting server '%s'...\n", getpid(), my_opt.progname);
     server_running = true;
     while (server_running) {
         // TODO: add error handling to accept_client
         retcode = accept_client(socketDescriptor, &my_opt);
         if (retcode < 0) {
-            perror("ERROR: accepting clients()");
+            err_print("ERROR: accepting clients()");
             exit(retcode);
         } /* end if */
     } /* end while */
 
-    printf("[%d] Good Bye...", getpid());
+    safe_printf("[%d] Good Bye...", getpid());
     return retcode;
 } /* end of main */
