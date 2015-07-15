@@ -55,7 +55,7 @@ print_log(const char *format, ...)
         err_print("semaphore wait");
     } /* end if */
 
-    printf("[%d] ", getpid());
+    // printf("[%d] ", getpid());
 
     va_start(args, format);
     status = vfprintf(_server->log_fd, format, args);
